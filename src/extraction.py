@@ -11,6 +11,7 @@ import h5py
 import numpy as np
 import concurrent.futures
 from threading import BoundedSemaphore
+from itertools import islice
 import storage
 
 
@@ -47,6 +48,10 @@ def get_image(index, url, size, set_name):
 
     except OSError as e:
         logger.info(set_name+"-- URL#"+str(index)+" Http error: "+str(e))
+        
+    except Exception as e:
+        logger.info(set_name+"-- URL#"+str(index)+" Http error: "+str(e))
+
 
     return 500, None    
 
@@ -79,15 +84,15 @@ def request_data_and_store(dataframe, size, set_name, start_index = 0):
         nothing for now...
     """
     logger = logging.getLogger()
-
+   
     queue = BoundedSemaphore(100)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:    
-        for index, row in dataframe.iterrows():
+    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:          
+        for index, row in islice(dataframe.iterrows(), start_index, None):                       
             if (index % 1000) == 0:
                 logger.info("--Processing " + str(index))
 
-            if index > (start_index - 500) and not(storage.exist(set_name ,index)):
+            if not(storage.exist(set_name ,index)):
 
                 response_handler =  \
                     lambda future, index=index, caption=row.caption: store_handler(set_name, index, caption, future.result()[0], future.result()[1])
