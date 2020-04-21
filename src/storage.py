@@ -14,7 +14,7 @@ def get_file_size():
     K_FOLD = 100000
     return K_FOLD
 
-def get_path(set_name ,index):    
+def get_file_path_from_idx(set_name ,index):    
     file_number = get_file_number(index)
     return get_path(set_name ,file_number)
 
@@ -35,7 +35,7 @@ def get_file_numbers(start_index, stop_index):
 def exist(set_name ,index):        
     logger = logging.getLogger()
 
-    file_path, lock_path = get_path(set_name ,index)
+    file_path, lock_path = get_file_path_from_idx(set_name ,index)
     # Locks the file since it will be accessed from multiple threads
     lock = FileLock(lock_path)
     lock.acquire()  
@@ -56,7 +56,7 @@ def store_status(set_name, index, status_code):
     logger = logging.getLogger()
     logger.info(set_name+"-- URL#"+str(index)+" Storing status--- "+str(status_code))
     
-    file_path, lock_path = get_path(set_name ,index)
+    file_path, lock_path = get_file_path_from_idx(set_name ,index)
     # Locks the file since it will be accessed from multiple threads
 
     lock = FileLock(lock_path)
@@ -95,7 +95,7 @@ def store_image(set_name, index, image, caption):
     """
     logger = logging.getLogger()
     logger.info(set_name+"-- URL#"+str(index)+" Storing image--- ")
-    file_path, lock_path = get_path(set_name ,index)
+    file_path, lock_path = get_file_path_from_idx(set_name ,index)
     # Locks the file since it will be accessed from multiple threads
 
     lock = FileLock(lock_path)
@@ -120,6 +120,7 @@ def store_image(set_name, index, image, caption):
         group.create_dataset(
             "status", data="200"
         )
+        logger.info(set_name+"-- URL#"+str(index)+" IMAGE STORED--- ")
     except (OSError, Exception) as e:
         logger.info(set_name+"-- URL#"+str(index)+" Error: "+str(e))
     finally:
@@ -147,7 +148,7 @@ def read_image(set_name, index):
     file_nb = get_file_number(index)
     
     # Open the HDF5 file
-    file_path , lock_path = get_path(set_name ,file_nb)
+    file_path , lock_path = get_file_path_from_idx(set_name ,file_nb)
     file = h5py.File(file_path, "r")
 
     group = file[str(index)]
@@ -169,11 +170,14 @@ def get_last_stored_index(set_name):
     for (dirpath, dirnames, filenames) in walk('../data/img/'):
         f.extend(filenames)
         break
-    
-    filtered_list = list(filter(lambda i: (i.endswith(".h5") and i.find(set_name+"_") == 0), f))
 
+    filtered_list = list(filter(lambda i: (i.endswith(".h5") and i.find(set_name+"_") == 0), f))
+    logger.info("--filtered_list size-- " + str(len(filtered_list)))
+    logger.info(filtered_list)
+    if len(filtered_list) == 0:
+        return 0
     last_idx = str(len(filtered_list) -1)
-    file = h5py.File(Path('../data/img/'+set_name+"_"+last_idx+".h5") , "a")
+    file = h5py.File(Path('../data/img/'+set_name+"_"+last_idx+".h5") , "r")
     keys_list = list(file.keys())
     logger.info("--KeysList size-- " + str(len(keys_list)))
     
