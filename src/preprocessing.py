@@ -7,48 +7,39 @@ import logging
 
 import tensorflow as tf
 import tensorflow_hub as hub
-from keras import layers
-from keras.models import Model
+#from keras import layers
+#from keras.models import Model
 
 from bert import bert_tokenization
 import storage
 
-BERT_URL = 'https://tfhub.dev/google/bert_uncased_L-12_H-768_A-12/1'
+BERT_URL = 'https://tfhub.dev/tensorflow/bert_en_uncased_L-12_H-768_A-12/1'
+MAX_CAPTION_LENGTH = 35
 
 def import_BERT_pretrained_model():
-    # Import BERT model specified in the url
-    module = hub.Module(BERT_URL)
+    # Import BERT model specified in the url    
+    #module = hub.Module(BERT_URL)
+    module = hub.KerasLayer(BERT_URL, trainable=True)
     return module
 
 def BERT_embed(module, sentences, isInputSentence=True):
-    with tf.Session() as sess:
-        sess.run(tf.global_variables_initializer())
 
-        # Retrieve vocab file from cache
-        tokenization_info = module(signature="tokenization_info", as_dict=True)
-        vocab_file, do_lower_case = sess.run([tokenization_info["vocab_file"],tokenization_info["do_lower_case"]])
+    # Retrieve vocab file from cache
+    vocab_file = module.resolved_object.vocab_file.asset_path.numpy()
+    do_lower_case = module.resolved_object.do_lower_case.numpy()
 
-        # Create a tokenizer   
-        tokenizer = bert_tokenization.FullTokenizer(vocab_file=vocab_file, do_lower_case=do_lower_case)
+    # Create a tokenizer   
+    tokenizer = bert_tokenization.FullTokenizer(vocab_file=vocab_file, do_lower_case=do_lower_case)
 
-        # Build BERT's model placeholders
-        input_ids = tf.placeholder(dtype=tf.int32, shape=[None, None])
-        input_mask = tf.placeholder(dtype=tf.int32, shape=[None, None])
-        segment_ids = tf.placeholder(dtype=tf.int32, shape=[None, None])
+    input_ids = tf.keras.layers.Input(shape=(MAX_CAPTION_LENGTH,), dtype=tf.int32,name="input_word_ids")
+    input_mask = tf.keras.layers.Input(shape=(MAX_CAPTION_LENGTH,), dtype=tf.int32,name="input_mask")
+    segment_ids = tf.keras.layers.Input(shape=(MAX_CAPTION_LENGTH,), dtype=tf.int32,name="segment_ids")
 
-        bert_inputs = dict(
-            input_ids=input_ids,
-            input_mask=input_mask,
-            segment_ids=segment_ids)
+    input_ids_vals, input_mask_vals, segment_ids_vals = convert_sentences_to_features(sentences, tokenizer, MAX_CAPTION_LENGTH, isInputSentence)
+    
+    pooled_output, sequence_output = module([input_ids_vals, input_mask_vals, segment_ids_vals])    
 
-        transfer_model = module(bert_inputs, signature="tokens", as_dict=True)
-
-        input_ids_vals, input_mask_vals, segment_ids_vals = convert_sentences_to_features(sentences, tokenizer, 35, isInputSentence)
-
-        out = sess.run(transfer_model, feed_dict={input_ids: input_ids_vals, input_mask: input_mask_vals, 
-                                                   segment_ids: segment_ids_vals})
-
-        return out
+    return pooled_output, sequence_output
 
 def preprocess_sentence(sentence):    
     # Step 1: Add a "." at the end of the sentence. Not all captions seem to have one
@@ -122,17 +113,18 @@ def batch_generator(set_name, start_index, batch_size):
     preprocess_captions = preprocess_sentences(Y)
     
     # Embedds captions sent into the LSTM cell - BERT output has two keys `dict_keys(['sequence_output', 'pooled_output'])
-    in_captions = BERT_embed(module, Y, isInputSentence=True)
+    _,in_captions = BERT_embed(module,Y, isInputSentence=True)
     
     # Embedds captions for loss computation - BERT output has two keys `dict_keys(['sequence_output', 'pooled_output'])`
-    out_captions = BERT_embed(module, Y, isInputSentence=False)
+    _,out_captions = BERT_embed(module, Y, isInputSentence=False)
     
     # Return
     X_data = {
         "image_input":np.array(X),
-        "caption_input": in_captions['sequence_output']}
+        "caption_input": in_captions
+    }
     Y_data = {
-        "output": out_captions['sequence_output']
+        "output": out_captions
     }
     
     #yield(X_data, Y_data )

@@ -23,5 +23,5 @@ mymodel.compile(loss='categorical_crossentropy', optimizer=Adam(lr = 0.01), metr
 a0 = np.zeros((X["image_input"].shape[0], 60))
 c0 = np.zeros((X["image_input"].shape[0], 60))
 
-mymodel.fit([X["image_input"],X["caption_input"]
-             , a0, c0], Y["output"], batch_size=10, epochs=9, verbose=2)
+mymodel.fit([X["image_input"],X["caption_input"].numpy()
+             , a0, c0], Y["output"].numpy(), batch_size=10, epochs=9, verbose=2)
