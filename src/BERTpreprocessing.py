@@ -42,8 +42,8 @@ def BERT_embed(module, sentences, isInputSentence=True):
     return pooled_output, sequence_output
 
 def preprocess_sentence(sentence):    
-    # Step 1: Add a "." at the end of the sentence. Not all captions seem to have one
-    p = re.compile('.*(\.)$')
+    # Step 1: Add a "." at the end of the sentence if no punctuation. 
+    p = re.compile('.*([\.?!])$')
     if not (p.match(sentence)):
         sentence += "."
         

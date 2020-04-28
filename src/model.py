@@ -6,14 +6,13 @@ from keras import layers
 from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
 from keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
 from keras.models import Model, load_model
-from keras.preprocessing import image
-from keras.initializers import glorot_uniform
+from keras.preprocessing import image 
 from keras.optimizers import Adam
+from keras.initializers import Constant, glorot_uniform
 import keras.backend as K
 
-import preprocessing
 
-
+    
 def identity_block(X, f, filters, stage, block):
     """
     Implementation of the identity block as defined in Figure 4
@@ -114,7 +113,7 @@ def convolutional_block(X, f, filters, stage, block, s = 2):
 
 
 
-def TrainShowAndTell(caption_max_size, hidden_size, emb_size, image_shape = (300, 300, 3)):
+def TrainShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weights, image_shape = (300, 300, 3)):
     """
     -- CNN Encoder --
     -----------------
@@ -129,6 +128,8 @@ def TrainShowAndTell(caption_max_size, hidden_size, emb_size, image_shape = (300
     Arguments:
     caption_max_size: the max number of tokens of a caption
     hidden_size: activation layer size for LSTM
+    vocab_size: -- size of the bag of words
+    weights: --  Embedding Matrix (GloVe) - np.array of shape(vocab_size x emb_size)
     emb_size: -- number of features for each token (embedding size)
     input_shape -- shape of the images of the dataset
 
@@ -203,12 +204,14 @@ def TrainShowAndTell(caption_max_size, hidden_size, emb_size, image_shape = (300
 
     # Text embedding    
     caption = Input(shape=(caption_max_size, emb_size), name="caption_input")
-    #X_caption = Embedding(vocab_size, emb_size, mask_zero = True, name = 'emb_text')(caption)
+    # load GloVe pre-trained word embeddings into an Embedding layer
+    # we set trainable = False so as to keep the embeddings fixed
+    #X_caption = Embedding(vocab_size, emb_size, embeddings_initializer = Constant(weights), input_length = caption_max_size, mask_zero = False, trainable = False, name = 'emb_text')(caption)
     print(caption.shape)
     
     # Take image embedding as the first input to LSTM
     C, _, _ = LSTMLayer(caption, initial_state=[a, c])
-    output = TimeDistributed(Dense(emb_size, activation='softmax'), name = 'output')(C)
+    output = TimeDistributed(Dense(emb_size, activation='softmax'), name = 'caption_output')(C)
     print(output.shape)
     
     return Model(inputs=[X_input, caption, a0, c0], outputs=output, name='TrainShowAndTell')

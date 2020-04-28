@@ -12,10 +12,10 @@ from keras.optimizers import Adam
 import keras.backend as K
 
 import model
-import preprocessing
+import BERTpreprocessing
 
 
-X, Y  = preprocessing.batch_generator("train", 0, 100)
+X, Y  = BERTpreprocessing.batch_generator("train", 0, 100)
 
 mymodel = model.TrainShowAndTell(35, 60, 768)
 mymodel.compile(loss='categorical_crossentropy', optimizer=Adam(lr = 0.01), metrics=['accuracy'])
