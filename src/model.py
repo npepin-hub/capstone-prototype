@@ -113,7 +113,7 @@ def convolutional_block(X, f, filters, stage, block, s = 2):
 
 
 
-def TrainShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weights, image_shape = (300, 300, 3)):
+def ShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weights, image_shape = (300, 300, 3)):
     """
     -- CNN Encoder --
     -----------------
@@ -197,6 +197,7 @@ def TrainShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weight
     a0 = Input(shape=(hidden_size,), name='a0')
     c0 = Input(shape=(hidden_size,), name='c0')
     print(a0.shape)
+    
     # Take image embedding as the first input to LSTM
     LSTMLayer = LSTM(hidden_size, return_sequences = True, return_state = True, dropout=0.5, name = 'lstm')
     print(X.shape)
@@ -204,17 +205,27 @@ def TrainShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weight
 
     # Text embedding    
     caption = Input(shape=(caption_max_size, emb_size), name="caption_input")
+    
     # load GloVe pre-trained word embeddings into an Embedding layer
     # we set trainable = False so as to keep the embeddings fixed
     #X_caption = Embedding(vocab_size, emb_size, embeddings_initializer = Constant(weights), input_length = caption_max_size, mask_zero = False, trainable = False, name = 'emb_text')(caption)
     print(caption.shape)
     
+    output = TimeDistributed(Dense(vocab_size, activation='softmax'), name = 'caption_output')
+    
     # Take image embedding as the first input to LSTM
     C, _, _ = LSTMLayer(caption, initial_state=[a, c])
-    output = TimeDistributed(Dense(emb_size, activation='softmax'), name = 'caption_output')(C)
-    print(output.shape)
+    training_output = output(C)
     
-    return Model(inputs=[X_input, caption, a0, c0], outputs=output, name='TrainShowAndTell')
-
-
+    print(training_output.shape)
+    inception_a = Input(shape=(hidden_size,), name='a1')
+    inception_c = Input(shape=(hidden_size,), name='c1')
+    C1, _, _ = LSTMLayer(caption, initial_state=[inception_a, inception_c])
+    inception_output = output(C1)
+    
+    training_model = Model(inputs=[X_input, caption, a0, c0], outputs=training_output, name='TrainShowAndTell')
+    inceptioninitialiser_model = Model(inputs=[X_input, a0, c0], outputs=[a,c], name='InitializeInceptionShowAndTell')
+    inception_model = Model(inputs=[caption, inception_a, inception_c], outputs=inception_output, name='InceptionShowAndTell')
+    
+    return training_model, inceptioninitialiser_model, inception_model
 

@@ -1,5 +1,6 @@
 
 import logging
+import numpy as np
 
 import tensorflow as tf
 from keras import layers
@@ -19,12 +20,12 @@ preprocessor = GloVepreprocessing.GloVepreprocessor()
 X, Y  = preprocessor.batch_generator("train", 0, 100)
 
 
-mymodel = model.TrainShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
+trainmodel,_,_ = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
 
-mymodel.compile(loss='categorical_crossentropy', optimizer=Adam(lr = 0.01), metrics=['accuracy'])
+trainmodel.compile(loss='categorical_crossentropy', optimizer=Adam(lr = 0.01), metrics=['accuracy'])
 
 a0 = np.zeros((X["image_input"].shape[0], 60))
 c0 = np.zeros((X["image_input"].shape[0], 60))
 
-mymodel.fit([X["image_input"],X["caption_input"]
-             , a0, c0], Y["caption_output"], batch_size=10, epochs=9, verbose=2)
+trainmodel.fit([X["image_input"],X["caption_input"]
+             , a0, c0], Y["caption_output"], batch_size=10, epochs=10, verbose=2)

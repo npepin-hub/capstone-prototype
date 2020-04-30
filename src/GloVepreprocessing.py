@@ -6,6 +6,7 @@ import numpy as np
 import urllib
 import re
 import yaml
+from itertools import chain
 import logging
 import logging.config
 
@@ -34,6 +35,7 @@ class GloVepreprocessor(object):
     MAX_SEQUENCE_LENGTH = 35
     EMBEDDING_SIZE = 50
     VOCAB_SIZE = 0
+    MAX_VOCAB_SIZE = 100000
     
     # Additional tokens added to the embeddings to mark the beginning  [CLS] and end [SEP] of captions plus a padding token [PAD] and unknow token [UNK]
     PAD_IDX = 0
@@ -54,9 +56,9 @@ class GloVepreprocessor(object):
     
     def __init__(self):
         self.setupLogging()
-        self.import_GloVe_files()
-        self.load_GloVe()
+        self.import_GloVe_files()        
         self.fit_tokenizer()
+        self.load_GloVe()
 
         
     ####################
@@ -91,55 +93,64 @@ class GloVepreprocessor(object):
                 print(f'Extracting glove weights from {local_zip_file_path}')
                 z.extractall(path=self.glove_dir)
 
-
-    ###############
-    # Loads Glove #
-    ###############
-    def load_GloVe(self):
-        # converts a sequence of words to sequence of integers for embedding lookup
-
-        self.word2idx = { '[PAD]': self.PAD_IDX, '[CLS]': self.CLS_IDX, '[SEP]': self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
-        self.idx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :'[CLS]' , self.SEP_IDX :'[SEP]' , self.UNKNOWN_IDX :'[UNK]'}
-
-        # Insert 4 additional token: the PAD, CLS, SEP, UNK in embedding matrix
-        self.weights.insert(self.PAD_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.CLS_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.SEP_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
-
-        # idx2word - decodes an integer sequence to words  
-        # weights - VOCAB_LENGTH x EMBEDDING_DIMENTION matrix
-
-        with open(self.glove_weights_file_path) as file:
-            for index, line in enumerate(file):
-                values = line.split() # Word and weights separated by space
-                word = values[0] # Word is first symbol on each line
-                word_weights = np.asarray(values[1:], dtype=np.float32) # Remainder of line is weights for word
-                self.word2idx[word] = index + 4 # PAD, CLS, SEP, UNK are predefined tokens ->  shift index by 4
-                self.idx2word[index + 4 ] = word
-                self.weights.append(word_weights)
-
-        # Construct our final vocab
-        self.weights = np.asarray(self.weights, dtype=np.float32)
-        self.VOCAB_SIZE=self.weights.shape[0]
-
     ############################################
     # Fit a Tokenizer on the training captions #
-    ###############
+    ############################################
     def fit_tokenizer(self):
         # Read TSV files for captions
         train_df = pd.read_table('../data/Train_GCC-training.tsv', header = None, names = ['caption', 'url'] )
 
         train_df["caption"] = [self.preprocess_sentence(caption) for caption in train_df["caption"]]
         
-        if not self.VOCAB_SIZE == 0:
-            self.tokenizer = Tokenizer(num_words=self.VOCAB_SIZE)
-            self.tokenizer.fit_on_texts(train_df["caption"])
-        else:
-            self.load_GloVe()
-            self.fit.tokenizer()
-       
-       
+        #if not self.VOCAB_SIZE == 0:
+        self.tokenizer = Tokenizer(num_words=self.MAX_VOCAB_SIZE)
+        self.tokenizer.fit_on_texts(train_df["caption"])
+        
+        
+    ###############
+    # Loads Glove #
+    ###############
+    def load_GloVe(self):
+        
+        
+        # idx2word - decodes an integer sequence to words
+        # wordtoidx - encodes a word sequence to integers
+        
+        # converts a sequence of words to sequence of integers for embedding lookup        
+        preword2idx = {'[PAD]': self.PAD_IDX, '[CLS]': self.CLS_IDX, '[SEP]': self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
+        preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :'[CLS]' , self.SEP_IDX :'[SEP]' , self.UNKNOWN_IDX :'[UNK]'}
+        
+        postword2idx = dict(self.tokenizer.word_index.items())
+        postidx2word = dict(self.tokenizer.index_word.items())
+
+        n = len(preword2idx)
+        
+        self.word2idx = preword2idx
+        self.idx2word = preidx2word
+        for key, value in postword2idx.items():
+            self.word2idx[key]=int(value)+n-1
+        for key, value in postidx2word.items():
+            self.idx2word[int(key)+n-1]=value
+            
+        # weights - VOCAB_LENGTH x EMBEDDING_DIMENTION matrix
+        # Insert 4 additional token: the PAD, CLS, SEP, UNK in embedding matrix
+        self.weights.insert(self.PAD_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        self.weights.insert(self.CLS_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        self.weights.insert(self.SEP_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        self.weights.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
+
+        with open(self.glove_weights_file_path) as file:
+            for index, line in enumerate(file):
+                values = line.split() # Word and weights separated by space
+                word = values[0] # Word is first symbol on each line
+                if word in self.word2idx:
+                    word_weights = np.asarray(values[1:], dtype=np.float32) # Remainder of line is weights for word
+                    self.weights.append(word_weights)
+
+        # Construct our max vocab 
+        self.weights = np.asarray(self.weights, dtype=np.float32)
+        self.VOCAB_SIZE=self.weights.shape[0]
+               
     # Apply a first set of filter to a caption
     def preprocess_sentence(self, sentence):    
         # Step 1: Add a "." at the end of the sentence if no punctuation. 
@@ -210,6 +221,18 @@ class GloVepreprocessor(object):
     
         return embeddings
     
+    # Given a list of list of caption ids, return an array of hot encoded ids in a vocab space 
+    # return size (batch_size, MAX_SEQUENCE_LENGTH, VOCAB_SIZE) 
+    def one_hot_encode(self, captions_ids, max_caption_length, n_classes):
+        hot_encoding = np.zeros((len(captions_ids), max_caption_length, n_classes))
+        for i, caption in enumerate(captions_ids):
+            for j, idx in enumerate(caption):
+                hot_encoding[i, j, idx] = 1.0
+            for k in range(j+1, max_caption_length):
+                hot_encoding[i, k, self.word2idx["[PAD]"]] = 1.0
+
+        return hot_encoding
+    
     # Given a set_name ("train" or "validation"), retrieves a batch-size of image/captions
     # Returns the batch-size of images and embedded captions (2 sets: embedded captions fed as an imput of the RNN and those used to estimate the loss)
     def batch_generator(self, set_name, start_index, batch_size):
@@ -233,19 +256,23 @@ class GloVepreprocessor(object):
                 continue
 
 
-        # Embedds captions sent into the LSTM cell - BERT output has two keys `dict_keys(['sequence_output', 'pooled_output'])
+        # Embedds captions sent into the LSTM cell 
         in_captions = self.GloVe_embed(Y, self.weights, isInputSentence=True)
 
-        # Embedds captions for loss computation - BERT output has two keys `dict_keys(['sequence_output', 'pooled_output'])`
-        out_captions = self.GloVe_embed(Y, self.weights, isInputSentence=False)
+        # Hot encode captions for loss computation
+        out_captions_ids = self.get_sentences_ids(self.preprocess_sentences(Y), 
+                                                      self.tokenizer, isInputSentence=False)
+        out_captions = self.one_hot_encode(out_captions_ids, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE)
+
 
         # Return
         X_data = {
             "image_input":np.array(X),
             "caption_input": np.reshape(in_captions, (batch_size, self.MAX_SEQUENCE_LENGTH, self.EMBEDDING_SIZE))
+
         }
         Y_data = {
-            "caption_output": np.reshape(out_captions, (batch_size, self.MAX_SEQUENCE_LENGTH, self.EMBEDDING_SIZE))
+            "caption_output": np.reshape(out_captions, (batch_size, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE))
         }
 
         #yield(X_data, Y_data )
