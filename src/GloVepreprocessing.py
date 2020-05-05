@@ -7,15 +7,17 @@ import urllib
 import re
 import yaml
 from itertools import chain
+import pickle
 import logging
 import logging.config
 
-from keras.preprocessing.text import Tokenizer, text_to_word_sequence
-from keras.preprocessing.sequence import pad_sequences
-from keras.layers import Input, Embedding, Lambda
-from keras.models import Model
-from keras.initializers import Constant
-import keras.backend as K
+from tensorflow.keras.preprocessing.text import Tokenizer, text_to_word_sequence
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.layers import Input, Embedding, Lambda
+from tensorflow.keras.models import Model
+from tensorflow.keras.initializers import Constant
+from tensorflow.keras.utils import to_categorical
+import tensorflow.keras.backend as K
 
 import storage
 
@@ -55,7 +57,7 @@ class GloVepreprocessor(object):
 #########################################################################    
     
     def __init__(self):
-        self.setupLogging()
+        self.setupLogging()        
         self.import_GloVe_files()        
         self.fit_tokenizer()
         self.load_GloVe()
@@ -184,7 +186,8 @@ class GloVepreprocessor(object):
         # If the sentence is fed into the RNN for training purpose, the [CLS] token is added at the beginning
         if isInputSentence:
             tokens = ['[CLS]']
-            max_seq += 1
+            max_seq += 1            
+        
         tokens.extend(text_to_word_sequence(sentence))
         if len(tokens) > max_seq:
             tokens = tokens[:max_seq]
@@ -205,7 +208,16 @@ class GloVepreprocessor(object):
             sentences_input_ids.append(input_ids)
 
         return sentences_input_ids
-    
+
+    def GloVe_embed_tokens(self, tokens, weights):
+        input_ids = self.convert_tokens_to_ids(tokens)
+        input_ids = pad_sequences([input_ids], padding='post', truncating='post', maxlen=self.MAX_SEQUENCE_LENGTH)
+
+        embedding = []
+        for id in input_ids:
+            embedding.append(weights[id])
+        return embedding
+        
     # Given a list of captions, returns an np.array of their corresponding embeddings. 
     # return shape is (batch_size, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE)
     def GloVe_embed(self, list_of_captions, weights, isInputSentence=True):
@@ -233,12 +245,57 @@ class GloVepreprocessor(object):
 
         return hot_encoding
     
-    # Given a set_name ("train" or "validation"), retrieves a batch-size of image/captions
-    # Returns the batch-size of images and embedded captions (2 sets: embedded captions fed as an imput of the RNN and those used to estimate the loss)
-    def batch_generator(self, set_name, start_index, batch_size):
+
+    def generator(self, set_name, batch_size, start_index=0):
         logger = logging.getLogger()
-        X = []
-        Y = []
+        batch_start_index = start_index
+        while True: 
+            images , captions = [] , []
+            idx = 0
+            while idx < batch_size:
+                try:
+                    status, image, caption = storage.read_image(set_name, batch_start_index + idx)  
+                    if (int(status) == 200):
+                        images.append(image)
+                        captions.append(str(caption))
+                    idx = idx + 1    
+                except KeyError:
+                    # Ignores files not found - probably an HHTP error when requesting the URL
+                    logger.info("-- URL# "+str(idx)+" storing status not found.")
+                    continue
+            
+            # Embedds captions sent into the LSTM cell 
+            in_captions = self.GloVe_embed(captions, self.weights, isInputSentence=True)
+
+            # Hot encode captions for loss computation
+            out_captions_idx = self.get_sentences_ids(self.preprocess_sentences(captions), 
+                                                          self.tokenizer, isInputSentence=False)
+            #out_captions = self.one_hot_encode(out_captions_idx, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE)
+            out_captions = to_categorical(out_captions_idx, num_classes=self.VOCAB_SIZE, dtype='float32')
+            
+
+            # Return
+            X_data = {
+                "image_input":np.array(images),
+                "caption_input": np.reshape(in_captions, (len(captions), self.MAX_SEQUENCE_LENGTH, self.EMBEDDING_SIZE))
+
+            }
+            Y_data = {
+                "caption_output": np.reshape(out_captions, (len(captions), self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE))
+            }
+            
+            a0 = np.zeros((X_data["image_input"].shape[0], 60))
+            c0 = np.zeros((X_data["image_input"].shape[0], 60))
+            batch_start_index =  batch_start_index + batch_size
+
+            yield([X_data["image_input"],X_data["caption_input"],a0, c0],[Y_data["caption_output"]])
+        
+    
+    # Given a set_name ("train" or "validation"), retrieves a batch-size of image/captions
+    # Returns the batch-size of images and embedded captions (2 sets: embedded captions fed as an imput of the RNN and those used to estimate the loss) 
+    def batch_creator(self, set_name, start_index, batch_size):
+        logger = logging.getLogger()
+        X , Y = [] , []
         idx = 0
         stop_index = start_index + batch_size
         while idx < stop_index:
@@ -260,10 +317,10 @@ class GloVepreprocessor(object):
         in_captions = self.GloVe_embed(Y, self.weights, isInputSentence=True)
 
         # Hot encode captions for loss computation
-        out_captions_ids = self.get_sentences_ids(self.preprocess_sentences(Y), 
+        out_captions_idx = self.get_sentences_ids(self.preprocess_sentences(Y), 
                                                       self.tokenizer, isInputSentence=False)
-        out_captions = self.one_hot_encode(out_captions_ids, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE)
-
+        #out_captions = self.one_hot_encode(out_captions_idx, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE)
+        out_captions = to_categorical(out_captions_idx, num_classes=self.VOCAB_SIZE, dtype='float32')
 
         # Return
         X_data = {
@@ -275,8 +332,26 @@ class GloVepreprocessor(object):
             "caption_output": np.reshape(out_captions, (batch_size, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE))
         }
 
-        #yield(X_data, Y_data )
-        return(X_data, Y_data)
+        return(X_data, Y_data )
+        
+    def get_loss_function(self):
+
+        # Masking the ['PAD'] on Loss function -> ie: weights the padded areas to 0 in each caption to focus on "true" words only.
+        # TODO: See how to add a Masking Layer as part of the model
+        def masked_categorical_crossentropy(y_true, y_pred):
+            pad_idx = self.word2idx["[PAD]"]
+            y_true_idx = K.argmax(y_true)
+
+            # In each output vector of the LSTM, the idexes at which the value is the padding's index ['PAD'] are set to 0.
+            mask = K.cast(K.equal(y_true_idx, pad_idx), K.floatx())
+            mask = 1.0 - mask
+
+            loss = K.categorical_crossentropy(y_true, y_pred) * mask
+
+            # The loss is relative to the number of unpadded words in the vector
+            return K.sum(loss) / K.sum(mask)
+
+        return masked_categorical_crossentropy
     
     
     

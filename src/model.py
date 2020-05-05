@@ -2,14 +2,14 @@ import numpy as np
 import logging
 
 import tensorflow as tf
-from keras import layers
-from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
-from keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
-from keras.models import Model, load_model
-from keras.preprocessing import image 
-from keras.optimizers import Adam
-from keras.initializers import Constant, glorot_uniform
-import keras.backend as K
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
+from tensorflow.keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.preprocessing import image 
+from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.initializers import Constant, glorot_uniform
+import tensorflow.keras.backend as K
 
 
     
@@ -196,11 +196,10 @@ def ShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weights, im
     # Define the initial hidden state a0 and initial cell state c0
     a0 = Input(shape=(hidden_size,), name='a0')
     c0 = Input(shape=(hidden_size,), name='c0')
-    print(a0.shape)
-    
+   
     # Take image embedding as the first input to LSTM
     LSTMLayer = LSTM(hidden_size, return_sequences = True, return_state = True, dropout=0.5, name = 'lstm')
-    print(X.shape)
+
     X, a, c = LSTMLayer(X, initial_state=[a0, c0])
 
     # Text embedding    
@@ -209,23 +208,24 @@ def ShowAndTell(caption_max_size, vocab_size, emb_size, hidden_size, weights, im
     # load GloVe pre-trained word embeddings into an Embedding layer
     # we set trainable = False so as to keep the embeddings fixed
     #X_caption = Embedding(vocab_size, emb_size, embeddings_initializer = Constant(weights), input_length = caption_max_size, mask_zero = False, trainable = False, name = 'emb_text')(caption)
-    print(caption.shape)
     
     output = TimeDistributed(Dense(vocab_size, activation='softmax'), name = 'caption_output')
     
     # Take image embedding as the first input to LSTM
     C, _, _ = LSTMLayer(caption, initial_state=[a, c])
     training_output = output(C)
-    
-    print(training_output.shape)
-    inception_a = Input(shape=(hidden_size,), name='a1')
-    inception_c = Input(shape=(hidden_size,), name='c1')
-    C1, _, _ = LSTMLayer(caption, initial_state=[inception_a, inception_c])
-    inception_output = output(C1)
+
+    inference_in_a = Input(shape=(hidden_size,), name='a1')
+    inference_in_c = Input(shape=(hidden_size,), name='c1')
+
+    C1, inference_out_a, inference_out_c = LSTMLayer(caption, initial_state=[inference_in_a, inference_in_c])
+    inference_output = output(C1)
     
     training_model = Model(inputs=[X_input, caption, a0, c0], outputs=training_output, name='TrainShowAndTell')
-    inceptioninitialiser_model = Model(inputs=[X_input, a0, c0], outputs=[a,c], name='InitializeInceptionShowAndTell')
-    inception_model = Model(inputs=[caption, inception_a, inception_c], outputs=inception_output, name='InceptionShowAndTell')
+ 
+    inferenceinitialiser_model = Model(inputs=[X_input, a0, c0], outputs=[a,c], name='InitializeInferenceShowAndTell')
+
+    inference_model = Model(inputs=[caption, inference_in_a, inference_in_c], outputs=[inference_output,inference_out_a,inference_out_c], name='InferenceShowAndTell')
     
-    return training_model, inceptioninitialiser_model, inception_model
+    return training_model, inferenceinitialiser_model, inference_model
 

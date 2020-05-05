@@ -1,31 +1,60 @@
-
+from matplotlib import pyplot as plt
 import logging
 import numpy as np
+import os
+import pickle
+import captiongeneration
 
-import tensorflow as tf
-from keras import layers
-from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
-from keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
-from keras.models import Model, load_model
-from keras.preprocessing import image 
-from keras.optimizers import Adam
-from keras.initializers import Constant, glorot_uniform
-import keras.backend as K
+
+from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
+
+from tensorflow.keras.optimizers import Adam
 
 import GloVepreprocessing
 import model
 
-preprocessor = GloVepreprocessing.GloVepreprocessor()
+preprocessor = None
+print("before pickle load")
+try:
+    with open("../data/preprocessor.pickle", 'rb') as handle:
+        preprocessor = pickle.load(handle)
+except FileNotFoundError:
+    print("in exception")      
+    preprocessor = GloVepreprocessing.GloVepreprocessor()
+    with open("../data/preprocessor.pickle", 'wb') as handle:
+        print("before pickle dump")
+        pickle.dump(preprocessor, handle)
 
-X, Y  = preprocessor.batch_generator("train", 0, 100)
+
+#X, Y  = preprocessor.batch_creator("train", 0, 100)
+
+# Loads model and weights
+training_model,inference_initialiser_model,inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
+
+loss_function = preprocessor.get_loss_function()
+training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.01), metrics=['accuracy'])
+
+checkpoint_path = "../data/models/chk/"
+checkpoint_dir = os.path.dirname(checkpoint_path)
+
+# Create a callback that saves the model's weights
+cp_callback = ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True,verbose=2)
+
+tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=False, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
+
+batch_size = 5
+epochs=5  
+    
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, verbose=1, callbacks=[tb_callback])
+
+training_model.save_weights("../data/models/w_train_{0}.saved".format(epochs))
+inference_initialiser_model.save_weights("../data/models/w_inference_init{0}.saved".format(epochs))
+inference_model.save_weights("../data/models/w_inference_{0}.saved".format(epochs))
 
 
-trainmodel,_,_ = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
-
-trainmodel.compile(loss='categorical_crossentropy', optimizer=Adam(lr = 0.01), metrics=['accuracy'])
-
-a0 = np.zeros((X["image_input"].shape[0], 60))
-c0 = np.zeros((X["image_input"].shape[0], 60))
-
-trainmodel.fit([X["image_input"],X["caption_input"]
-             , a0, c0], Y["caption_output"], batch_size=10, epochs=10, verbose=2)
+for key in history.history.keys():
+    f = plt.figure()
+    data = history.history[key]
+    plt.plot(data)
+plt.show()
+    
