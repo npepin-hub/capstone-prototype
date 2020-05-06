@@ -71,7 +71,7 @@ def store_handler(set_name, index, caption, status_code, padded_image=None):
 
 def request_data_and_store(dataframe, size, set_name, start_index = 0):
     """ Given a panda dataframe containing a list of urls and their corresponding caption, get 
-        the images and stores each thumbnailed-padded-to-size Image/Caption into a single hdf5 file.
+        the images and stores each thumbnailed-padded-to-size Image/Caption into a hdf5 file.
         Parameters:
         ---------------
         dataframe    the pandas raw dataset
@@ -90,7 +90,7 @@ def request_data_and_store(dataframe, size, set_name, start_index = 0):
     with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:          
         for index, row in islice(dataframe.iterrows(), start_index, None):                       
             if (index % 1000) == 0:
-                logger.info("--Processing " + str(index))
+                logger.info("extraction:request_data_and_store--Processing " + str(index))
 
             if not(storage.exist(set_name ,index)):
 
@@ -99,10 +99,10 @@ def request_data_and_store(dataframe, size, set_name, start_index = 0):
 
                 release_handler = lambda future: queue.release()
                 
-                logger.info("-- Before ACQUIRE -- " + str(index))
+                logger.info("extraction:request_data_and_store-- Before ACQUIRE -- " + str(index))
                 queue.acquire()
                 
-                logger.info("-- Before SUBMIT -- " + str(index))
+                logger.info("extraction:request_data_and_store-- Before SUBMIT -- " + str(index))
                 future_image = executor.submit(get_image, index, row.url, size, set_name)
                 future_image.add_done_callback(response_handler)
                 future_image.add_done_callback(release_handler)

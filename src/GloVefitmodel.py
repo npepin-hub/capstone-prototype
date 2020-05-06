@@ -14,22 +14,19 @@ import GloVepreprocessing
 import model
 
 preprocessor = None
-print("before pickle load")
+
 try:
     with open("../data/preprocessor.pickle", 'rb') as handle:
         preprocessor = pickle.load(handle)
-except FileNotFoundError:
-    print("in exception")      
+except FileNotFoundError:      
     preprocessor = GloVepreprocessing.GloVepreprocessor()
     with open("../data/preprocessor.pickle", 'wb') as handle:
         print("before pickle dump")
         pickle.dump(preprocessor, handle)
 
 
-#X, Y  = preprocessor.batch_creator("train", 0, 100)
-
 # Loads model and weights
-training_model,inference_initialiser_model,inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
+training_model, inference_initialiser_model, inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
 
 loss_function = preprocessor.get_loss_function()
 training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.01), metrics=['accuracy'])
@@ -45,7 +42,7 @@ tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=Fals
 batch_size = 5
 epochs=5  
     
-history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, verbose=1, callbacks=[tb_callback])
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, verbose=1, callbacks=[cp_callback])
 
 training_model.save_weights("../data/models/w_train_{0}.saved".format(epochs))
 inference_initialiser_model.save_weights("../data/models/w_inference_init{0}.saved".format(epochs))

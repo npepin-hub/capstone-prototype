@@ -36,15 +36,7 @@ def caption_generation(set_name, index, epochs = 10):
         return "None"
     
     _ ,inference_initialiser_model,inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
-    
-    #checkpoint_path = "../data/models/chk/"
-    #checkpoint_dir = os.path.dirname(checkpoint_path)    
-    #inference_initialiser_model.load_weights(checkpoint_dir)
-  
-    #saved_path = "../data/models/save/"
-    #saved_dir = os.path.dirname(saved_path)
-        
-    
+            
     logger.info("loading inference init model") 
     #inference_initialiser_model = load_model("../data/models/inference_init{0}.saved".format(epochs))
     inference_initialiser_model.load_weights("../data/models/w_inference_init{0}.saved".format(epochs))
@@ -65,20 +57,20 @@ def caption_generation(set_name, index, epochs = 10):
     
     for t in range(preprocessor.MAX_SEQUENCE_LENGTH):
         embedded_generated_caption = preprocessor.GloVe_embed_tokens(generated_caption, preprocessor.weights)
-        logger.debug("Generated Caption: " + " ".join(generated_caption))
+        logger.debug("-------------Generated Caption---------------: " + " ".join(generated_caption))
 
         output, state_a, state_c = inference_model.predict({"caption_input":np.reshape(embedded_generated_caption,(1, preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.EMBEDDING_SIZE)), "a1":state_a, "c1":state_c})
         
         
-        print("Output shape"+str(output.shape)+"Starting Word research")
-        temp_caption = []
-        for i in range(preprocessor.MAX_SEQUENCE_LENGTH):
-            print("Outputoutput[0, i]"+str(len(output[0, i])))
-            generated_word2 = np.argmax(output[0, i])
-            print(generated_word2)
-            print(preprocessor.idx2word[generated_word2])
-            temp_caption.append(preprocessor.idx2word[generated_word2])
-        print(" ".join(temp_caption))
+        #print("Output shape"+str(output.shape)+"Starting Word research")
+        #temp_caption = []
+        #for i in range(preprocessor.MAX_SEQUENCE_LENGTH):
+            #print("Outputoutput[0, i]"+str(len(output[0, i])))
+            #generated_word2 = np.argmax(output[0, i])
+            #print(generated_word2)
+            #print(preprocessor.idx2word[generated_word2])
+            #temp_caption.append(preprocessor.idx2word[generated_word2])
+        #print(" ".join(temp_caption))
         
         generated_word = np.argmax(output[0, t])
         logger.debug("Generated Word Index" + str(generated_word))
