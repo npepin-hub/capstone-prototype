@@ -179,7 +179,7 @@ def get_last_stored_index(set_name):
         break
 
     filtered_list = list(filter(lambda i: (i.endswith(".h5") and i.find(set_name+"_") == 0), f))
-    logger.info("storage.get_last_stored_index"+--filtered_list size-- " + str(len(filtered_list)))
+    logger.info("storage.get_last_stored_index --filtered_list.size-- " + str(len(filtered_list)))
     logger.info(filtered_list)
     if len(filtered_list) == 0:
         return 0
