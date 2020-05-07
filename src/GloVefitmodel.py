@@ -39,8 +39,8 @@ cp_callback = ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True,ve
 
 tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=False, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
 
-batch_size = 5
-epochs=5  
+batch_size = 10
+epochs=5000  
     
 history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, verbose=1, callbacks=[cp_callback])
 

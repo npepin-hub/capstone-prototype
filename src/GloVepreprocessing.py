@@ -126,7 +126,7 @@ class GloVepreprocessor(object):
         postidx2word = dict(self.tokenizer.index_word.items())
 
         n = len(preword2idx)
-        
+        # Assemble the above 4 token to word2idx and idx2word
         self.word2idx = preword2idx
         self.idx2word = preidx2word
         for key, value in postword2idx.items():
@@ -228,7 +228,10 @@ class GloVepreprocessor(object):
         for caption_ids in list_of_captions_ids:
             for id in caption_ids:
                 caption_embedding = []
-                caption_embedding.append(self.weights[id])
+                try:
+                    caption_embedding.append(self.weights[id])
+                except IndexError:
+                    continue
             embeddings.extend(caption_embedding)
     
         return embeddings
@@ -245,7 +248,7 @@ class GloVepreprocessor(object):
 
         return hot_encoding
     
-
+    # Streams a batch of caption/images to the model during the training
     def generator(self, set_name, batch_size, start_index=0):
         logger = logging.getLogger()
         batch_start_index = start_index
