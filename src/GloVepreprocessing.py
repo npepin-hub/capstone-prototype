@@ -118,40 +118,55 @@ class GloVepreprocessor(object):
         # idx2word - decodes an integer sequence to words
         # wordtoidx - encodes a word sequence to integers
         
-        # converts a sequence of words to sequence of integers for embedding lookup        
+        wordsintokenizer = set(self.tokenizer.word_index)
+
+        originalembedmatrix = {}
+        wordsinoriginalembedmatrix = []    
+
+        with open(self.glove_weights_file_path) as file:       
+            for index, line in enumerate(file):
+                values = line.split() # Word and weights separated by space
+                word = values[0] # Word is first symbol on each line
+                wordsinoriginalembedmatrix.append(word)       
+                word_weights = np.asarray(values[1:], dtype=np.float32) # Remainder of line is weights for word
+                originalembedmatrix[word] = word_weights
+        
+        originalembedmatrixwords = set(wordsinoriginalembedmatrix)
+        # words in tokenizer that are not in the embedding matrix need to be removed from the tokenizer
+        remove = wordsintokenizer-originalembedmatrixwords
+        # removing the words from the tokenizerso that all the words remaining will exist in the embedding matrix
+        commonwords = list(wordsintokenizer - remove)
+    
+        
         preword2idx = {'[PAD]': self.PAD_IDX, '[CLS]': self.CLS_IDX, '[SEP]': self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
         preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :'[CLS]' , self.SEP_IDX :'[SEP]' , self.UNKNOWN_IDX :'[UNK]'}
-        
-        postword2idx = dict(self.tokenizer.word_index.items())
-        postidx2word = dict(self.tokenizer.index_word.items())
-
         n = len(preword2idx)
+
+        originalword2idx = dict(self.tokenizer.word_index.items())
+        originalidx2word = dict(self.tokenizer.index_word.items())
+    
         # Assemble the above 4 token to word2idx and idx2word
         self.word2idx = preword2idx
         self.idx2word = preidx2word
-        for key, value in postword2idx.items():
-            self.word2idx[key]=int(value)+n-1
-        for key, value in postidx2word.items():
-            self.idx2word[int(key)+n-1]=value
-            
+
+
         # weights - VOCAB_LENGTH x EMBEDDING_DIMENTION matrix
         # Insert 4 additional token: the PAD, CLS, SEP, UNK in embedding matrix
         self.weights.insert(self.PAD_IDX, np.random.randn(self.EMBEDDING_SIZE))
         self.weights.insert(self.CLS_IDX, np.random.randn(self.EMBEDDING_SIZE))
         self.weights.insert(self.SEP_IDX, np.random.randn(self.EMBEDDING_SIZE))
         self.weights.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
-
-        with open(self.glove_weights_file_path) as file:
-            for index, line in enumerate(file):
-                values = line.split() # Word and weights separated by space
-                word = values[0] # Word is first symbol on each line
-                if word in self.word2idx:
-                    word_weights = np.asarray(values[1:], dtype=np.float32) # Remainder of line is weights for word
-                    self.weights.append(word_weights)
+        
+        # Creates the word2idx, idx2word, weights
+        for word in commonwords:
+            idx = int(originalword2idx[word])+n-1
+            self.word2idx[word] = idx
+            self.idx2word[idx] = word
+            self.weights.insert(idx, originalembedmatrix[word])
 
         # Construct our max vocab 
         self.weights = np.asarray(self.weights, dtype=np.float32)
-        self.VOCAB_SIZE=self.weights.shape[0]
+        self.VOCAB_SIZE = self.weights.shape[0]
                
     # Apply a first set of filter to a caption
     def preprocess_sentence(self, sentence):    
