@@ -34,7 +34,7 @@ class GloVepreprocessor(object):
     glove_weights_file_path = ""
     
     # Embedding parameters
-    MAX_SEQUENCE_LENGTH = 35
+    MAX_SEQUENCE_LENGTH = 15
     EMBEDDING_SIZE = 50
     VOCAB_SIZE = 0
     MAX_VOCAB_SIZE = 100000
@@ -158,8 +158,8 @@ class GloVepreprocessor(object):
         self.weights.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
         
         # Creates the word2idx, idx2word, weights
-        for word in commonwords:
-            idx = int(originalword2idx[word])+n-1
+        for i, word in enumerate(commonwords):
+            idx = int(i+n)
             self.word2idx[word] = idx
             self.idx2word[idx] = word
             self.weights.insert(idx, originalembedmatrix[word])

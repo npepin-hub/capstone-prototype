@@ -29,7 +29,7 @@ except FileNotFoundError:
 training_model, inference_initialiser_model, inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
 
 loss_function = preprocessor.get_loss_function()
-training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.01), metrics=['accuracy'])
+training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.03), metrics=['accuracy'])
 
 checkpoint_path = "../data/models/chk/"
 checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -40,9 +40,9 @@ cp_callback = ModelCheckpoint(filepath=checkpoint_path,save_weights_only=True,ve
 tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=False, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
 
 batch_size = 10
-epochs=5000  
+epochs=100  
     
-history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, validation_split=0.1, verbose=1, callbacks=[cp_callback])
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=20, epochs=epochs, verbose=1, callbacks=[cp_callback])
 
 training_model.save_weights("../data/models/w_train_{0}.saved".format(epochs))
 inference_initialiser_model.save_weights("../data/models/w_inference_init{0}.saved".format(epochs))
