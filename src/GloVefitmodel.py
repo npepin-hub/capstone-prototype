@@ -42,7 +42,7 @@ tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=Fals
 batch_size = 10
 epochs=5000  
     
-history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, verbose=1, callbacks=[cp_callback])
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size), steps_per_epoch=2, epochs=epochs, validation_split=0.1, verbose=1, callbacks=[cp_callback])
 
 training_model.save_weights("../data/models/w_train_{0}.saved".format(epochs))
 inference_initialiser_model.save_weights("../data/models/w_inference_init{0}.saved".format(epochs))
