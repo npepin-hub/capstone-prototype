@@ -2,14 +2,14 @@ import numpy as np
 import logging
 
 import tensorflow as tf
-from keras import layers
-from keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
-from keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
-from keras.models import Model, load_model
-from keras.preprocessing import image
-from keras.initializers import glorot_uniform
-from keras.optimizers import Adam
-import keras.backend as K
+from tensorflow.keras import layers
+from tensorflow.keras.layers import Input, Add, Dense, Activation, ZeroPadding2D, BatchNormalization, Lambda 
+from tensorflow.keras.layers import Flatten, Conv2D, MaxPooling2D, AveragePooling2D, Reshape, LSTM, Embedding, TimeDistributed
+from tensorflow.keras.models import Model, load_model
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.initializers import glorot_uniform
+from tensorflow.keras.optimizers import Adam
+import tensorflow.keras.backend as K
 
 import model
 import BERTpreprocessing

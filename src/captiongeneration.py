@@ -16,7 +16,7 @@ import logging
 
 logger = logging.getLogger()
 
-def caption_generation(set_name, index, epochs = 10):
+def caption_generation(set_name, index, epoch = 10):
     
     preprocessor = None
     logger.info("loading preprocessor")
@@ -35,16 +35,25 @@ def caption_generation(set_name, index, epochs = 10):
     if status != 200:
         return "None"
     
-    _ ,inference_initialiser_model,inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
-            
+    checkpoint_path = "../data/models/chk/"
+    checkpoint_dir = os.path.dirname(checkpoint_path)
+    
+    training_model,inference_initialiser_model,inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
+    
+    logger.info("loading training  model") 
+    #training_model.load_weights(f"../data/models/w_train_{epoch}.saved")
+    training_model.load_weights(f"{checkpoint_path}wtrain-{epoch:03d}")
+
     logger.info("loading inference init model") 
     #inference_initialiser_model = load_model("../data/models/inference_init{0}.saved".format(epochs))
-    inference_initialiser_model.load_weights("../data/models/w_inference_init{0}.saved".format(epochs))
+    #inference_initialiser_model.load_weights("../data/models/w_inference_init{0}.saved".format(epoch))
+    #inference_initialiser_model.load_weights(f"../data/models/chk/wtrain-{epoch}", by_name=True, skip_mismatch=True)
     
-    #training_model = keras.models.load_model("../data/models/train_{0}.saved".format(epochs))
     logger.info("loading inference model")
     #inference_model = load_model("../data/models/inference_{0}.saved".format(epochs))
-    inference_model.load_weights("../data/models/w_inference_{0}.saved".format(epochs))
+    #inference_model.load_weights("../data/models/w_inference_{0}.saved".format(epoch))
+    #inference_model.load_weights(f"../data/models/chk/wtrain-{epoch}", by_name=True, skip_mismatch=True)
+    
     
     a0 = np.zeros((1, 60))
     c0 = np.zeros((1, 60))

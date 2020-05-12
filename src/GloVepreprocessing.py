@@ -37,7 +37,7 @@ class GloVepreprocessor(object):
     MAX_SEQUENCE_LENGTH = 15
     EMBEDDING_SIZE = 50
     VOCAB_SIZE = 0
-    MAX_VOCAB_SIZE = 100000
+    MAX_VOCAB_SIZE = 10000
     
     # Additional tokens added to the embeddings to mark the beginning  [CLS] and end [SEP] of captions plus a padding token [PAD] and unknow token [UNK]
     PAD_IDX = 0
@@ -50,13 +50,18 @@ class GloVepreprocessor(object):
     word2idx = {}
     idx2word =  {}
     
-    Tokenizer = None
+    tokenizer = None
     
 
     
 #########################################################################    
     
     def __init__(self):
+        weights = []
+        word2idx = {}
+        idx2word =  {}
+        self.tokenizer = None
+
         self.setupLogging()        
         self.import_GloVe_files()        
         self.fit_tokenizer()
@@ -100,8 +105,11 @@ class GloVepreprocessor(object):
     ############################################
     def fit_tokenizer(self):
         # Read TSV files for captions
+        
         train_df = pd.read_table('../data/Train_GCC-training.tsv', header = None, names = ['caption', 'url'] )
+        #train_df = pd.read_table('../data/Validation_GCC -validation.tsv', header = None, names = ['caption', 'url'] )
 
+        
         train_df["caption"] = [self.preprocess_sentence(caption) for caption in train_df["caption"]]
         
         #if not self.VOCAB_SIZE == 0:
@@ -118,7 +126,7 @@ class GloVepreprocessor(object):
         # idx2word - decodes an integer sequence to words
         # wordtoidx - encodes a word sequence to integers
         
-        wordsintokenizer = set(self.tokenizer.word_index)
+        wordsintokenizer = self.tokenizer.word_index
 
         originalembedmatrix = {}
         wordsinoriginalembedmatrix = []    
@@ -130,13 +138,14 @@ class GloVepreprocessor(object):
                 wordsinoriginalembedmatrix.append(word)       
                 word_weights = np.asarray(values[1:], dtype=np.float32) # Remainder of line is weights for word
                 originalembedmatrix[word] = word_weights
-        
-        originalembedmatrixwords = set(wordsinoriginalembedmatrix)
+                
         # words in tokenizer that are not in the embedding matrix need to be removed from the tokenizer
-        remove = wordsintokenizer-originalembedmatrixwords
+        remove = set(wordsintokenizer) - set(wordsinoriginalembedmatrix)              
+        print("remove " + str(len(remove)))
         # removing the words from the tokenizerso that all the words remaining will exist in the embedding matrix
-        commonwords = list(wordsintokenizer - remove)
-    
+        commonwords = list(filter(lambda x: x not in remove, wordsintokenizer.keys()))
+        print("commonwords " + str(len(commonwords)))
+        
         
         preword2idx = {'[PAD]': self.PAD_IDX, '[CLS]': self.CLS_IDX, '[SEP]': self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
         preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :'[CLS]' , self.SEP_IDX :'[SEP]' , self.UNKNOWN_IDX :'[UNK]'}
@@ -150,22 +159,25 @@ class GloVepreprocessor(object):
         self.idx2word = preidx2word
 
 
+        w = []
         # weights - VOCAB_LENGTH x EMBEDDING_DIMENTION matrix
         # Insert 4 additional token: the PAD, CLS, SEP, UNK in embedding matrix
-        self.weights.insert(self.PAD_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.CLS_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.SEP_IDX, np.random.randn(self.EMBEDDING_SIZE))
-        self.weights.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        w.insert(self.PAD_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        w.insert(self.CLS_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        w.insert(self.SEP_IDX, np.random.randn(self.EMBEDDING_SIZE))
+        w.insert(self.UNKNOWN_IDX, np.random.randn(self.EMBEDDING_SIZE))
         
         # Creates the word2idx, idx2word, weights
         for i, word in enumerate(commonwords):
+            if i >= (self.MAX_VOCAB_SIZE - n):
+                break
             idx = int(i+n)
             self.word2idx[word] = idx
             self.idx2word[idx] = word
-            self.weights.insert(idx, originalembedmatrix[word])
+            w.insert(idx, originalembedmatrix[word])
 
         # Construct our max vocab 
-        self.weights = np.asarray(self.weights, dtype=np.float32)
+        self.weights = np.asarray(w, dtype=np.float32)
         self.VOCAB_SIZE = self.weights.shape[0]
                
     # Apply a first set of filter to a caption
