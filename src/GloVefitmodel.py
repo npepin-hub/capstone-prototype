@@ -30,15 +30,16 @@ except FileNotFoundError:
 training_model, inference_initialiser_model, inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
 
 loss_function = preprocessor.get_loss_function()
-training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.01), metrics=['accuracy'])
+
+training_model.compile(loss="categorical_crossentropy", optimizer=Adam(lr = 0.001), metrics=['accuracy'])
 
 checkpoint_path = "../data/models/chk/"
 checkpoint_dir = os.path.dirname(checkpoint_path)
 
 initial_epoch = 0
-batch_size = 10
-epochs=400
-steps_per_epoch = 20
+batch_size = 1
+epochs=500
+steps_per_epoch = 100
     
 logger = logging.getLogger()
 
@@ -55,11 +56,11 @@ except NotFoundError:
     initial_epoch = 0
     
 # Create a callback that saves the model's weights
-cp_callback = ModelCheckpoint(filepath=checkpoint_path + 'wtrain-{epoch:03d}',save_weights_only=True,verbose=1, save_best_only=False, mode='auto', monitor='loss', period=50)
+cp_callback = ModelCheckpoint(filepath=checkpoint_path + 'wtrain-{epoch:03d}',save_weights_only=True,verbose=2, save_best_only=False, mode='auto', monitor='loss', period=1)
 
-tb_callback = TensorBoard(log_dir='/var/log', histogram_freq=1, write_graph=False, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
+tb_callback = TensorBoard(log_dir='/var/log/TensorBoard', histogram_freq=1, write_graph=False, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
 
-history = training_model.fit(preprocessor.generator('train', batch_size=batch_size, start_index=initial_epoch*steps_per_epoch*batch_size), steps_per_epoch=steps_per_epoch, epochs=epochs, initial_epoch = initial_epoch, verbose=2, callbacks=[cp_callback])
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size, start_index=0), steps_per_epoch=steps_per_epoch, epochs=epochs, initial_epoch = initial_epoch, verbose=2, callbacks=[cp_callback, tb_callback])
 
 training_model.save_weights(f"../data/models/w_train_{epochs}.saved")
 inference_initialiser_model.save_weights(f"../data/models/w_inference_init{epochs}.saved")

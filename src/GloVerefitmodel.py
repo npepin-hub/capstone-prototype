@@ -26,10 +26,10 @@ except FileNotFoundError:
         print("before pickle dump")
         pickle.dump(preprocessor, handle)
 
-initial_epoch = 300
-batch_size = 10
-epochs=initial_epoch + 100
-steps_per_epoch = 2000
+initial_epoch = 36
+batch_size = 1
+epochs=initial_epoch + 400
+steps_per_epoch = 50
 
 checkpoint_path = "../data/models/chk/"
 checkpoint_dir = os.path.dirname(checkpoint_path)
@@ -40,21 +40,21 @@ logger = logging.getLogger()
 training_model, inference_initialiser_model, inference_model = model.ShowAndTell(preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.VOCAB_SIZE, preprocessor.EMBEDDING_SIZE, 60, preprocessor.weights)
 
 loss_function = preprocessor.get_loss_function()
-training_model.compile(loss=loss_function, optimizer=Adam(lr = 0.01), metrics=['accuracy'])
+training_model.compile(loss="categorical_crossentropy", optimizer=Adam(lr = 0.0001), metrics=['accuracy'])
 #custom_objects={"loss":loss_function}
 
 logger.info("Re-loading training model to train further") 
 print("Re-loading training model to train further")
 
-#training_model.load_weights(f"{checkpoint_path}wtrain-{initial_epoch:03d}")
-training_model.load_weights(f"../data/models/w_train_{initial_epoch}.saved")
+training_model.load_weights(f"{checkpoint_path}wtrain-{initial_epoch:03d}")
+#training_model.load_weights(f"../data/models/w_train_{initial_epoch}.saved")
   
 # Create a callback that saves the model's weights
 cp_callback = ModelCheckpoint(filepath=checkpoint_path + 'wtrain-{epoch:03d}',save_weights_only=True,verbose=2, save_best_only=False, mode='auto', monitor='loss', period=2)
 
 tb_callback = TensorBoard(log_dir='/var/log/TensorBoard/', histogram_freq=1, write_graph=True, write_grads=False, write_images=False, update_freq='batch', embeddings_freq=0)
     
-history = training_model.fit(preprocessor.generator('train', batch_size=batch_size, start_index=initial_epoch*20*batch_size), steps_per_epoch=steps_per_epoch, epochs=epochs, initial_epoch = initial_epoch, verbose=2, callbacks=[cp_callback,tb_callback])
+history = training_model.fit(preprocessor.generator('train', batch_size=batch_size, start_index=3600), steps_per_epoch=steps_per_epoch, epochs=epochs, initial_epoch = initial_epoch, verbose=2, callbacks=[cp_callback,tb_callback])
 
 training_model.save_weights(f"../data/models/w_train_{epochs}.saved")
 inference_initialiser_model.save_weights(f"../data/models/w_inference_init{epochs}.saved")

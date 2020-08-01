@@ -59,16 +59,21 @@ def caption_generation(set_name, index, epoch = 10):
     c0 = np.zeros((1, 60))
     image = K.expand_dims(image, axis=0)
 
-    state_a, state_c = inference_initialiser_model.predict({'image_input':image, 'a0':a0, 'c0':c0})
+    #state_a, state_c = inference_initialiser_model.predict({'image_input':image, 'a0':a0, 'c0':c0})
 
     generated_caption = ["[CLS]"]   
     current_word = None
     
-    for t in range(preprocessor.MAX_SEQUENCE_LENGTH):
-        embedded_generated_caption = preprocessor.GloVe_embed_tokens(generated_caption, preprocessor.weights)
+    for t in range(preprocessor.MAX_SEQUENCE_LENGTH-1):
+        
+        embedded_generated_caption = preprocessor.GloVe_embed(preprocessor.get_sequences_ids([generated_caption]))
         logger.debug("-------------Generated Caption---------------: " + " ".join(generated_caption))
 
-        output, state_a, state_c = inference_model.predict({"caption_input":np.reshape(embedded_generated_caption,(1, preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.EMBEDDING_SIZE)), "a1":state_a, "c1":state_c})
+        #output, state_a, state_c = inference_model.predict({"caption_input":np.reshape(embedded_generated_caption,(1, preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.EMBEDDING_SIZE)), "a1":state_a, "c1":state_c})
+        output = training_model.predict({"image_input":image, "caption_input":np.reshape(embedded_generated_caption,(1, preprocessor.MAX_SEQUENCE_LENGTH, preprocessor.EMBEDDING_SIZE))})
+        print("OUTPUT SHAPE"+ str(output.shape))
+        for i in range(15):
+            print("OUTPUT"+preprocessor.idx2word[ np.argmax(output[0, i])])
         
         
         #print("Output shape"+str(output.shape)+"Starting Word research")
@@ -81,7 +86,7 @@ def caption_generation(set_name, index, epoch = 10):
             #temp_caption.append(preprocessor.idx2word[generated_word2])
         #print(" ".join(temp_caption))
         
-        generated_word = np.argmax(output[0, t])
+        generated_word = np.argmax(output[0, t+1])
         logger.debug("Generated Word Index" + str(generated_word))
         logger.debug("Generated Word" + preprocessor.idx2word[generated_word])
         print("Generated Word Index" + str(generated_word))
