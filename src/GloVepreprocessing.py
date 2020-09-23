@@ -1,25 +1,28 @@
-import tensorflow as tf
-import pandas as pd
-import zipfile
-import os
-import numpy as np
-import urllib
-import re
-import yaml
+from config import settings
 from itertools import chain
+import numpy as np
+import os
+import pandas as pd
 import pickle
+import PIL
+from PIL import Image
+import re
+import urllib
+import yaml
+import zipfile
+
 import logging
 import logging.config
 
+from tensorflow.keras.applications.resnet import preprocess_input, decode_predictions
 from tensorflow.keras.preprocessing.text import Tokenizer, text_to_word_sequence
 from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.layers import Input, Embedding, Lambda
-from tensorflow.keras.models import Model
 from tensorflow.keras.initializers import Constant
 from tensorflow.keras.utils import to_categorical
 import tensorflow.keras.backend as K
 
 import storage
+import extraction
 
 
 class GloVepreprocessor(object):
@@ -28,16 +31,17 @@ class GloVepreprocessor(object):
 #########################################################################    
    
     # GloVe dir and url
-    glove_dir = "../data/glove"
-    glove_url = 'http://nlp.stanford.edu/data/glove.6B.zip'
+    glove_dir = settings.glove_dir
+    glove_url = settings.glove_url
+    
     # Path to the embedding file
     glove_weights_file_path = ""
     
     # Embedding parameters
-    MAX_SEQUENCE_LENGTH = 15
-    EMBEDDING_SIZE = 50
+    MAX_SEQUENCE_LENGTH = settings.MAX_SEQUENCE_LENGTH
+    EMBEDDING_SIZE = settings.EMBEDDING_SIZE
     VOCAB_SIZE = 0
-    MAX_VOCAB_SIZE = 10000
+    MAX_VOCAB_SIZE= settings.MAX_VOCAB_SIZE
     
     # Additional tokens added to the embeddings to mark the beginning  [CLS] and end [SEP] of captions plus a padding token [PAD] and unknow token [UNK]
     PAD_IDX = 0
@@ -72,7 +76,7 @@ class GloVepreprocessor(object):
     # Logging Set up   #
     ####################
     def setupLogging(self):
-        with open('../config/logConfig.yml', 'rt') as file:
+        with open(settings.log_config, 'rt') as file:
             config = yaml.safe_load(file.read())
             logging.config.dictConfig(config)
             
@@ -104,15 +108,10 @@ class GloVepreprocessor(object):
     # Fit a Tokenizer on the training captions #
     ############################################
     def fit_tokenizer(self):
-        # Read TSV files for captions
+        # Read TSV files for captions        
+        train_df = pd.read_table(settings.train_raw_data, header = None, names = ['caption', 'url'] )        
+        train_df["caption"] = [extraction.clean_caption(caption) for caption in train_df["caption"]]
         
-        train_df = pd.read_table('../data/Train_GCC-training.tsv', header = None, names = ['caption', 'url'] )
-        #train_df = pd.read_table('../data/Validation_GCC -validation.tsv', header = None, names = ['caption', 'url'] )
-
-        
-        train_df["caption"] = [self.preprocess_caption(caption) for caption in train_df["caption"]]
-        
-        #if not self.VOCAB_SIZE == 0:
         self.tokenizer = Tokenizer(num_words=self.MAX_VOCAB_SIZE)
         self.tokenizer.fit_on_texts(train_df["caption"])
         
@@ -121,11 +120,6 @@ class GloVepreprocessor(object):
     # Loads Glove #
     ###############
     def load_GloVe(self):
-        
-        
-        # idx2word - decodes an integer sequence to words
-        # wordtoidx - encodes a word sequence to integers
-        
         wordsintokenizer = self.tokenizer.word_index
 
         originalembedmatrix = {}
@@ -142,13 +136,13 @@ class GloVepreprocessor(object):
         # words in tokenizer that are not in the embedding matrix need to be removed from the tokenizer
         remove = set(wordsintokenizer) - set(wordsinoriginalembedmatrix)              
         print("remove " + str(len(remove)))
-        # removing the words from the tokenizerso that all the words remaining will exist in the embedding matrix
+        # removing the words from the tokenizer so that all the words remaining will exist in the embedding matrix
         commonwords = list(filter(lambda x: x not in remove, wordsintokenizer.keys()))
         print("commonwords " + str(len(commonwords)))
         
         
-        preword2idx = {'[PAD]': self.PAD_IDX, '[CLS]': self.CLS_IDX, '[SEP]': self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
-        preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :'[CLS]' , self.SEP_IDX :'[SEP]' , self.UNKNOWN_IDX :'[UNK]'}
+        preword2idx = {'[PAD]': self.PAD_IDX, settings.start_seq: self.CLS_IDX, settings.end_seq: self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
+        preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :settings.start_seq , self.SEP_IDX :settings.end_seq , self.UNKNOWN_IDX :'[UNK]'}
         n = len(preword2idx)
 
         originalword2idx = dict(self.tokenizer.word_index.items())
@@ -180,27 +174,31 @@ class GloVepreprocessor(object):
         self.weights = np.asarray(w, dtype=np.float32)
         self.VOCAB_SIZE = self.weights.shape[0]
                
-    # Apply a first set of filter to a caption
-    def preprocess_caption(self, caption):    
-        # Step 1: Add a "." at the end of the sentence if no punctuation. 
-        p = re.compile('.*([\.?!])$')
-        if not (p.match(caption)):
-            caption += "."
-
-        # Step 2: Lowercase
-        return caption.lower()
     
-    def preprocess_captions(self, captions): 
-        captions = list(map(lambda caption: self.preprocess_caption(caption), captions))
-        return captions
+    #def preprocess_captions(self, captions): 
+        #captions = list(map(lambda caption: extraction.clean_caption(caption), captions))
+        #return captions
     
-    def convert_to_tokens(self, caption):
-        tokens = ['[CLS]']
-        tokens.extend(text_to_word_sequence(self.preprocess_caption(caption)))
-        if len(tokens) > self.MAX_SEQUENCE_LENGTH - 1:
-            tokens = tokens[:self.MAX_SEQUENCE_LENGTH - 1]
-        tokens.append('[SEP]')
-        return tokens
+    # Converts a list of tokens into idx inclu 
+    #def convert_to_tokens(self, caption):
+        #tokens = [settings.start_seq]
+        #tokens.extend(text_to_word_sequence(extraction.clean_caption(caption)))
+        #if len(tokens) > self.MAX_SEQUENCE_LENGTH - 1:
+            #tokens = tokens[:self.MAX_SEQUENCE_LENGTH - 1]
+        #tokens.append(settings.end_seq)
+        #return tokens
+    
+    # Converts a caption list into a list of list of idx 
+    def texts_to_sequences(self, captions):
+        sequences = []
+        for caption in captions:
+            tokens = []
+            tokens.extend(text_to_word_sequence(caption))
+            if len(tokens) > self.MAX_SEQUENCE_LENGTH - 1:
+                tokens = tokens[:self.MAX_SEQUENCE_LENGTH - 1]
+                tokens.append(settings.end_seq)
+            sequences.append(self.convert_tokens_to_ids(tokens))
+        return sequences
     
     # Converts a list of tokens into idx    
     def convert_tokens_to_ids(self, tokens):
@@ -216,7 +214,7 @@ class GloVepreprocessor(object):
         except KeyError:
             return self.word2idx['[UNK]']
 
-    def get_sequences_ids(self, sequences):
+    """def get_sequences_ids(self, sequences):
         sequences_input_ids = []
 
         for sequence in sequences:
@@ -224,6 +222,7 @@ class GloVepreprocessor(object):
             input_ids = pad_sequences([input_ids], padding='post', truncating='post', maxlen=self.MAX_SEQUENCE_LENGTH)
             sequences_input_ids.append(input_ids)   
         return sequences_input_ids
+
 
 
     # Given a list of captions_ids, returns an np.array of their corresponding embeddings. 
@@ -240,22 +239,36 @@ class GloVepreprocessor(object):
             embeddings.extend(caption_embedding)
     
         return embeddings
+    """
     
-    
-    # Streams a batch of caption/images to the model during the training
-    def generator(self, set_name, batch_size, start_index=0):
+    """ 
+        Streams a batch of caption/images to the model during the training
+        set_name = "train" or "validate" -  specifies the set of data we are working on
+        start_index = 0 per default - the start index to consider
+    """
+    """def generator(self, set_name, batch_size, start_index=0):
         logger = logging.getLogger()        
         batch_start_index = start_index
+        
         while True: 
             X , Yin, Yout = [], [], []
             idx, missed_idx = 0 , 0
             while idx < batch_size:
                 try:
-                    status, image, caption = storage.read_image(set_name, batch_start_index + idx + missed_idx)       
+                    status, features, caption = storage.read_image(set_name, batch_start_index + idx + missed_idx)                        
                     if (int(status) == 200):
-                        tokens = self.convert_to_tokens(str(caption))                       
+                        #logger.info("before preprocessing image" + str(batch_start_index + idx + missed_idx))
+                        
+                        img = Image.fromarray(image)
+                        img = np.asarray(img.resize(size=(224, 224)))
+                        img = preprocess_input(img)
+                        
+                        #logger.info("after preprocessing image" + str(batch_start_index + idx + missed_idx))
+    
+                        tokens = self.convert_to_tokens(str(caption))  
+
                         for i in range(len(tokens)):
-                            X.append(image)
+                            X.append(img)
                             Yin.append(tokens[:i])
                             Yout.append(self.convert_token_to_id(tokens[i]))
                         idx = idx + 1
@@ -265,31 +278,80 @@ class GloVepreprocessor(object):
                     # Ignores files not found - probably an HHTP error when requesting the URL
                     missed_idx = missed_idx + 1
                     logger.info("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
+                    print("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
                     continue
-            
-            # Embedds captions sent into the LSTM cell 
-            in_captions = self.GloVe_embed(self.get_sequences_ids(Yin))
 
-            #out_captions = self.one_hot_encode(out_captions_idx, self.MAX_SEQUENCE_LENGTH, self.VOCAB_SIZE)
-            out_captions = to_categorical(Yout, num_classes=self.VOCAB_SIZE, dtype='float32')
+            in_captions = self.get_sequences_ids(Yin[1:])            
+            out_captions = to_categorical(Yout[1:], num_classes=self.VOCAB_SIZE, dtype='float32')
             
 
-            # Return
+            # Return prep
             X_data = {
-                "image_input":np.array(X),
-                "caption_input": np.reshape(in_captions, (len(Yout), self.MAX_SEQUENCE_LENGTH, self.EMBEDDING_SIZE))
-
+                "features_input":np.array(X[1:]),
+                "caption_input": np.reshape(in_captions, (len(Yin)-1, self.MAX_SEQUENCE_LENGTH))
+                
             }
             Y_data = {
-                "caption_output": np.reshape(out_captions, (len(Yout), 1, self.VOCAB_SIZE))
+                "caption_output": np.reshape(out_captions, (len(Yout)-1, self.VOCAB_SIZE))
             }
             
-            #a0 = np.zeros((X_data["image_input"].shape[0], 60))
-            #c0 = np.zeros((X_data["image_input"].shape[0], 60))
             batch_start_index =  batch_start_index + batch_size
-            print("GENERATED------- "+str(len(Yout))+"----------- TRAINING SET")
-            yield([X_data["image_input"],X_data["caption_input"]],[Y_data["caption_output"]])
         
+            yield([X_data["features_input"],X_data["caption_input"]],[Y_data["caption_output"]])"""
+        
+    def generator(self,set_name, batch_size, start_index=0):
+        #logger = logging.getLogger()        
+        batch_start_index = start_index
+
+        while True: 
+            X , Yin, Yout = [], [], []
+            idx, missed_idx = 0 , 0
+            while idx < batch_size:
+                try:
+                    status, _, features, caption = storage.read_image(set_name, batch_start_index + idx + missed_idx)                        
+                    # encode the sequence       
+                    seq = self.texts_to_sequences([str(caption)])[0]
+                    if (int(status) == 200):
+
+                        # split one sequence into multiple X,y pairs
+                        for i in range(1, len(seq)):
+                            # split into input and output pair
+                            in_seq, out_seq = seq[:i], seq[i]
+                            in_seq = pad_sequences([in_seq], maxlen=self.MAX_SEQUENCE_LENGTH, padding='post')[0]
+                            # encode output sequence
+                            out_seq = to_categorical([out_seq], num_classes=self.VOCAB_SIZE)[0]
+                            # store
+                            X.append(features.transpose())
+                            Yin.append(in_seq)
+                            Yout.append(out_seq)
+
+                        idx = idx + 1
+                    else:
+                        missed_idx = missed_idx + 1
+                except KeyError:
+                    # Ignores files not found - probably an HHTP error when requesting the URL
+                    missed_idx = missed_idx + 1
+                    logger.info("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
+                    print("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
+                    continue
+
+
+                # Return prep
+                X_data = {
+                    "features_input": np.reshape(X, (len(X), 2048)),
+                    "caption_input": np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))
+
+                }
+                Y_data = {
+                    "caption_output": np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))
+                }
+
+                batch_start_index =  batch_start_index + batch_size
+
+                yield([X_data["features_input"],X_data["caption_input"]],[Y_data["caption_output"]])
+
+
+    
     def get_loss_function(self):
 
         # Masking the ['PAD'] on Loss function -> ie: weights the padded areas to 0 in each caption to focus on "true" words only.

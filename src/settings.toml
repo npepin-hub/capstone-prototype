@@ -1,0 +1,44 @@
+##############
+#   Images   #
+##############
+# number of images per .h5 file
+images_per_storage =  100000
+# image shape for model input
+image_shape = [224,224,3]
+
+
+###############
+#  Captions   #
+###############
+start_seq = "startseq"
+end_seq = "endseq"
+
+##############
+# ../config  #
+##############
+# path to the logging config file
+log_config = "../config/logConfig.yml"
+
+
+##############
+# ../data    #
+##############
+# path to the repertory containing the .h5 data (image/caption)
+data_path = "../data/img/"
+
+# full path to the tsv (raw data files)
+train_raw_data = "../data/GCC-training.tsv"
+validation_raw_data = "../data/GCC-validation.tsv"
+
+
+glove_embed_data = "../data/preprocessor.pickle"
+glove_dir = "../data/glove"
+glove_url = 'http://nlp.stanford.edu/data/glove.6B.zip'
+
+######################
+#  Model parameters  #
+######################
+
+MAX_SEQUENCE_LENGTH = 34
+EMBEDDING_SIZE = 50
+MAX_VOCAB_SIZE= 10000
