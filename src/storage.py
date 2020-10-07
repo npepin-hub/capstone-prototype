@@ -44,7 +44,9 @@ def get_path(set_name ,file_number):
     file_path      path to the file
     lock_path      path to its .lock file
     """
-    images_path = settings.data_path
+    
+    dirname = os.path.dirname(__file__)
+    images_path = dirname+"/"+settings.data_path
     file_path = Path(images_path+set_name+'_'+str(file_number)+'.h5')
     lock_path = Path(images_path+set_name+'_'+str(file_number)+'.h5.lock')   
 

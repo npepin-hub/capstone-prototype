@@ -135,10 +135,8 @@ class GloVepreprocessor(object):
                 
         # words in tokenizer that are not in the embedding matrix need to be removed from the tokenizer
         remove = set(wordsintokenizer) - set(wordsinoriginalembedmatrix)              
-        print("remove " + str(len(remove)))
         # removing the words from the tokenizer so that all the words remaining will exist in the embedding matrix
         commonwords = list(filter(lambda x: x not in remove, wordsintokenizer.keys()))
-        print("commonwords " + str(len(commonwords)))
         
         
         preword2idx = {'[PAD]': self.PAD_IDX, settings.start_seq: self.CLS_IDX, settings.end_seq: self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
@@ -174,20 +172,9 @@ class GloVepreprocessor(object):
         self.weights = np.asarray(w, dtype=np.float32)
         self.VOCAB_SIZE = self.weights.shape[0]
                
-    
-    #def preprocess_captions(self, captions): 
-        #captions = list(map(lambda caption: extraction.clean_caption(caption), captions))
-        #return captions
-    
-    # Converts a list of tokens into idx inclu 
-    #def convert_to_tokens(self, caption):
-        #tokens = [settings.start_seq]
-        #tokens.extend(text_to_word_sequence(extraction.clean_caption(caption)))
-        #if len(tokens) > self.MAX_SEQUENCE_LENGTH - 1:
-            #tokens = tokens[:self.MAX_SEQUENCE_LENGTH - 1]
-        #tokens.append(settings.end_seq)
-        #return tokens
-    
+    #######################
+    #   Helper functions  #
+    #######################
     # Converts a caption list into a list of list of idx 
     def texts_to_sequences(self, captions):
         sequences = []
@@ -213,101 +200,30 @@ class GloVepreprocessor(object):
             return self.word2idx[token]
         except KeyError:
             return self.word2idx['[UNK]']
+        
+        
+    # Map an integer to a word
+    def word_for_id(self, integer):
+        word = '[UNK]'
+        try:
+            word = self.idx2word[integer]
+        except KeyError:
+            pass    
+        return word
 
-    """def get_sequences_ids(self, sequences):
-        sequences_input_ids = []
-
-        for sequence in sequences:
-            input_ids = self.convert_tokens_to_ids(sequence)
-            input_ids = pad_sequences([input_ids], padding='post', truncating='post', maxlen=self.MAX_SEQUENCE_LENGTH)
-            sequences_input_ids.append(input_ids)   
-        return sequences_input_ids
-
-
-
-    # Given a list of captions_ids, returns an np.array of their corresponding embeddings. 
-    # return shape is (batch_size, MAX_SEQUENCE_LENGTH, EMBEDDING_SIZE)
-    def GloVe_embed(self, sequences_ids):
-        embeddings = []    
-        for sequence_ids in sequences_ids:
-            for idx in sequence_ids:
-                caption_embedding = []
-                try:
-                    caption_embedding.append(self.weights[idx])
-                except IndexError:
-                    continue
-            embeddings.extend(caption_embedding)
-    
-        return embeddings
-    """
-    
-    """ 
-        Streams a batch of caption/images to the model during the training
-        set_name = "train" or "validate" -  specifies the set of data we are working on
-        start_index = 0 per default - the start index to consider
-    """
-    """def generator(self, set_name, batch_size, start_index=0):
+   ###############
+   #  Generator  #
+   ###############
+    def generator(self,set_name, batch_size, start_index=0):
         logger = logging.getLogger()        
         batch_start_index = start_index
-        
-        while True: 
-            X , Yin, Yout = [], [], []
-            idx, missed_idx = 0 , 0
-            while idx < batch_size:
-                try:
-                    status, features, caption = storage.read_image(set_name, batch_start_index + idx + missed_idx)                        
-                    if (int(status) == 200):
-                        #logger.info("before preprocessing image" + str(batch_start_index + idx + missed_idx))
-                        
-                        img = Image.fromarray(image)
-                        img = np.asarray(img.resize(size=(224, 224)))
-                        img = preprocess_input(img)
-                        
-                        #logger.info("after preprocessing image" + str(batch_start_index + idx + missed_idx))
-    
-                        tokens = self.convert_to_tokens(str(caption))  
-
-                        for i in range(len(tokens)):
-                            X.append(img)
-                            Yin.append(tokens[:i])
-                            Yout.append(self.convert_token_to_id(tokens[i]))
-                        idx = idx + 1
-                    else:
-                        missed_idx = missed_idx + 1
-                except KeyError:
-                    # Ignores files not found - probably an HHTP error when requesting the URL
-                    missed_idx = missed_idx + 1
-                    logger.info("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
-                    print("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
-                    continue
-
-            in_captions = self.get_sequences_ids(Yin[1:])            
-            out_captions = to_categorical(Yout[1:], num_classes=self.VOCAB_SIZE, dtype='float32')
-            
-
-            # Return prep
-            X_data = {
-                "features_input":np.array(X[1:]),
-                "caption_input": np.reshape(in_captions, (len(Yin)-1, self.MAX_SEQUENCE_LENGTH))
-                
-            }
-            Y_data = {
-                "caption_output": np.reshape(out_captions, (len(Yout)-1, self.VOCAB_SIZE))
-            }
-            
-            batch_start_index =  batch_start_index + batch_size
-        
-            yield([X_data["features_input"],X_data["caption_input"]],[Y_data["caption_output"]])"""
-        
-    def generator(self,set_name, batch_size, start_index=0):
-        #logger = logging.getLogger()        
-        batch_start_index = start_index
 
         while True: 
             X , Yin, Yout = [], [], []
             idx, missed_idx = 0 , 0
             while idx < batch_size:
                 try:
+                    logger.debug("loading feature " + str(batch_start_index + idx + missed_idx))
                     status, _, features, caption = storage.read_image(set_name, batch_start_index + idx + missed_idx)                        
                     # encode the sequence       
                     seq = self.texts_to_sequences([str(caption)])[0]
@@ -321,6 +237,9 @@ class GloVepreprocessor(object):
                             # encode output sequence
                             out_seq = to_categorical([out_seq], num_classes=self.VOCAB_SIZE)[0]
                             # store
+                            if (in_seq[0] != 1):
+                                logger.INFO("IN SEQUENCE: "+ str(in_seq))
+                            
                             X.append(features.transpose())
                             Yin.append(in_seq)
                             Yout.append(out_seq)
@@ -332,11 +251,11 @@ class GloVepreprocessor(object):
                     # Ignores files not found - probably an HHTP error when requesting the URL
                     missed_idx = missed_idx + 1
                     logger.info("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
-                    print("-- URL# "+str(batch_start_index + idx + missed_idx)+" storing status not found.")
                     continue
 
 
                 # Return prep
+                """
                 X_data = {
                     "features_input": np.reshape(X, (len(X), 2048)),
                     "caption_input": np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))
@@ -345,10 +264,11 @@ class GloVepreprocessor(object):
                 Y_data = {
                     "caption_output": np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))
                 }
-
-                batch_start_index =  batch_start_index + batch_size
-
-                yield([X_data["features_input"],X_data["caption_input"]],[Y_data["caption_output"]])
+                """
+            batch_start_index =  batch_start_index + batch_size
+            #yield([X_data["features_input"],X_data["caption_input"]],[Y_data["caption_output"]])
+            logger.debug(".")
+            yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
 
 
     
@@ -370,6 +290,32 @@ class GloVepreprocessor(object):
             return K.sum(loss) / K.sum(mask)
 
         return masked_categorical_crossentropy
-    
+     
+        ########################
+        #  Caption Generation  #
+        ########################                
+        # generate a description for the features of an image
+    def generate_description(self, model, photo):
+        # Seed the generation process
+        in_text = settings.start_seq
+        # Iterate over the whole length of the sequence
+        for i in range(preprocessor.MAX_SEQUENCE_LENGTH):
+            # integer encode input sequence
+            sequence = preprocessor.texts_to_sequences([in_text])[0]
+            # pad input
+            sequence = pad_sequences([sequence], maxlen=preprocessor.MAX_SEQUENCE_LENGTH)
+            # predict next word
+            yhat = model.predict([photo,sequence], verbose=0)
+            # convert probability to integer
+            yhat = np.argmax(yhat)
+            # map integer to word
+            word = preprocessor.word_for_id(yhat)
+
+            # append as input for generating the next word
+            in_text += ' ' + word
+            # stop if we predict the end of the sequence
+            if word == setting.end_seq:
+                break
+        return in_text
     
     

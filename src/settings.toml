@@ -6,7 +6,6 @@ images_per_storage =  100000
 # image shape for model input
 image_shape = [224,224,3]
 
-
 ###############
 #  Captions   #
 ###############
@@ -19,26 +18,37 @@ end_seq = "endseq"
 # path to the logging config file
 log_config = "../config/logConfig.yml"
 
-
 ##############
 # ../data    #
 ##############
 # path to the repertory containing the .h5 data (image/caption)
-data_path = "../data/img/"
+data_path = "../data/"
 
 # full path to the tsv (raw data files)
-train_raw_data = "../data/GCC-training.tsv"
-validation_raw_data = "../data/GCC-validation.tsv"
+train_raw_data = "../data/rawdata/GCC-training.tsv"
+validation_raw_data = "../data/rawdata/GCC-validation.tsv"
 
-
-glove_embed_data = "../data/preprocessor.pickle"
+##########################
+#  Embedding parameters  #
+##########################
+glove_embed_data = "./preprocessor.pickle"
 glove_dir = "../data/glove"
 glove_url = 'http://nlp.stanford.edu/data/glove.6B.zip'
-
-######################
-#  Model parameters  #
-######################
 
 MAX_SEQUENCE_LENGTH = 34
 EMBEDDING_SIZE = 50
 MAX_VOCAB_SIZE= 10000
+
+######################
+#  Model parameters  #
+######################
+model_path = "../models/"
+
+LOSS = "categorical_crossentropy"
+LEARNING_RATE = 0.001
+
+#################
+#  TensorBoard  #
+#################
+#tensorboard_log_dir='/var/log/TensorBoard'
+tensorboard_log_dir='s3://sagemaker-studio-3fqzdvw0h4y/capstone-prototype/data/tensorboard'

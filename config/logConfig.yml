@@ -12,7 +12,7 @@ formatters:
 handlers:
     console:
         class: logging.StreamHandler
-        level: DEBUG
+        level: INFO
         formatter: standard
         stream: ext://sys.stdout
 
@@ -28,7 +28,7 @@ handlers:
 
     file_handler:
         class: logging.handlers.RotatingFileHandler
-        level: WARN
+        level: INFO
         formatter: standard
         filename: /var/log/log.log
         maxBytes: 10485760 # 10MB
@@ -37,12 +37,12 @@ handlers:
 
 
 root:
-    level: DEBUG
+    level: INFO
     handlers: [console, file_handler]
     propagate: yes
 
-#loggers:
-    #<module>:
-       # level: INFO
-        #handlers: [console, info_file_handler, error_file_handler, critical_file_handler, debug_file_handler, warn_file_handler]
-        #propagate: no
+loggers:
+    filelock:
+        level: WARN
+        handlers: [console, file_handler]
+        propagate: no

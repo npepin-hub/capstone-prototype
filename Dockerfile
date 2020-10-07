@@ -3,7 +3,8 @@ COPY ./src /src
 COPY ./config /config
 ENV TFHUB_CACHE_DIR /data/tf-hub-cache
 WORKDIR /src
-RUN mkdir -p /opt/ml/processing/data
+RUN mkdir -p /opt/ml/processing/data/img
+RUN mkdir -p /opt/ml/processing/data/features
 RUN mkdir -p /opt/ml/processing/models
 
 RUN ln -s /opt/ml/processing/data /data
@@ -14,7 +15,8 @@ COPY ./src /src
 COPY ./config /config
 ENV TFHUB_CACHE_DIR /data/tf-hub-cache
 WORKDIR /src
-RUN mkdir -p /opt/ml/processing/data
+RUN mkdir -p /opt/ml/processing/data/features
+RUN mkdir -p /opt/ml/processing/data/img
 RUN mkdir -p /opt/ml/processing/models
 
 RUN ln -s /opt/ml/processing/data /data
@@ -25,7 +27,8 @@ COPY ./src /src
 COPY ./config /config
 ENV TFHUB_CACHE_DIR /data/tf-hub-cache
 WORKDIR /src
-RUN mkdir -p /opt/ml/processing/data
+RUN mkdir -p /opt/ml/processing/data/features
+RUN mkdir -p /opt/ml/processing/data/img
 RUN mkdir -p /opt/ml/processing/models
 
 RUN ln -s /opt/ml/processing/data /data

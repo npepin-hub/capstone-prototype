@@ -23,11 +23,9 @@ import concurrent.futures
 import storage
 
 #####################################################################################################################
-#   This file provides functions that extract the images and captions from the raw data (tsv files containing       #
-#   urls and their caption) then invoques functions provided by the storage module to store them.                   #
-#   Those functions are used during the extraction of the raw data in the train/validate tsv files and the          #
-#   storage of the extracted (image/caption/http status code) in .h5 files. Data in the .h5 files will then be      #
-#   fed to the model for training and validation purposes.                                                          # 
+#   This file provides the functions that extract the images and captions from the raw data (tsv files containing   #
+#   urls and their caption). It relies on functions provided by the storage module to store those extracted info in #
+#   .h5 files. The data in those .h5 files will then be fed to a model for training and validation purposes.        #
 #####################################################################################################################
 
 
@@ -51,7 +49,7 @@ def get_image(index, url, size, set_name):
 
     # Gets URLs
     try:
-        r = requests.get(url)
+        r = requests.get(url, timeout=(10,30))
 
         logger.info(set_name+"-- URL#"+str(index)+" Http code: "+str(r.status_code))
         if (r.status_code == 200):
@@ -106,7 +104,7 @@ def store_handler(set_name, index, caption, status_code=200, padded_image=None, 
 
 
 
-def request_data_and_store(dataframe, size, set_name, start_index = 0):
+def request_data_and_store(dataframe, size, set_name, start_index = 0, extraction_size=100000):
     """ 
     Given a panda dataframe containing a list of urls and their corresponding caption, retrieves 
     the images and stores each thumbnailed-padded-to-size Image/Caption using the storage module.
@@ -126,9 +124,9 @@ def request_data_and_store(dataframe, size, set_name, start_index = 0):
    
     queue = BoundedSemaphore(100)
     
-    with concurrent.futures.ThreadPoolExecutor(max_workers=20) as executor:          
-        for index, row in islice(dataframe.iterrows(), start_index, None):                       
-            if (index % 1000) == 0:
+    with concurrent.futures.ThreadPoolExecutor(max_workers=50) as executor:          
+        for index, row in islice(dataframe.iterrows(), start_index, extraction_size + start_index):                       
+            if (index % 100) == 0:
                 logger.info("extraction:request_data_and_store--Processing " + str(index))
 
             if not(storage.exist(set_name ,index)):
@@ -137,10 +135,10 @@ def request_data_and_store(dataframe, size, set_name, start_index = 0):
 
                 release_handler = lambda future: queue.release()
                 
-                logger.info("extraction:request_data_and_store-- Before ACQUIRE -- " + str(index))
+                logger.debug("extraction:request_data_and_store-- Before ACQUIRE -- " + str(index))
                 queue.acquire()
                 
-                logger.info("extraction:request_data_and_store-- Before SUBMIT -- " + str(index))
+                logger.debug("extraction:request_data_and_store-- Before SUBMIT -- " + str(index))
                 future_image = executor.submit(get_image, index, row.url, size, set_name)
                 future_image.add_done_callback(response_handler)
                 future_image.add_done_callback(release_handler)
@@ -156,7 +154,7 @@ def extract_resnet_features_and_store(set_name, batch_start_index, batch_end_ind
     ---------------
     set_name           validate or train
     batch_start_index  the index at which the insertion will start in the .h5 files
-    batch_end_index    the index at which the insertion should start
+    batch_end_index    the index at which the insertion should stop
     
     Returns:     
     ----------
@@ -176,7 +174,14 @@ def extract_resnet_features_and_store(set_name, batch_start_index, batch_end_ind
     features = dict()
     index = batch_start_index
     queue = BoundedSemaphore(100)
-    features_file_set_name = "resnet_" + set_name
+    features_file_set_name = "features/resnet_train"
+    
+    if "train" in set_name:
+        features_file_set_name = "features/resnet_train"         
+    elif "validate" in set_name:
+        features_file_set_name = "features/resnet_validate" 
+        
+    logger.info("extraction:extract_resnet_features_and_store-- Features will be written in -- " + features_file_set_name)
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:          
         while (index < batch_end_index):                      
@@ -190,9 +195,9 @@ def extract_resnet_features_and_store(set_name, batch_start_index, batch_end_ind
 
                 release_handler = lambda future: queue.release()
 
-                logger.info("extraction:request_data_and_store-- Before queue ACQUIRE -- " + str(index))
+                logger.info("extraction:extract_resnet_features_and_store-- Before queue ACQUIRE -- " + str(index))
                 queue.acquire()
-                logger.info("extraction:request_data_and_store-- Before executor SUBMIT -- " + str(index))
+                logger.info("extraction:extract_resnet_features_and_store-- Before executor SUBMIT -- " + str(index))
                 future_feature = executor.submit(get_image_resnet_features, index, model, set_name)
                 future_feature.add_done_callback(response_handler)
                 future_feature.add_done_callback(release_handler)
