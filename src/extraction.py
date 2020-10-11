@@ -14,7 +14,6 @@ import string
 from threading import BoundedSemaphore
 import time
 
-
 from tensorflow.keras.applications import resnet50, resnet
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
@@ -27,7 +26,6 @@ import storage
 #   urls and their caption). It relies on functions provided by the storage module to store those extracted info in #
 #   .h5 files. The data in those .h5 files will then be fed to a model for training and validation purposes.        #
 #####################################################################################################################
-
 
 def get_image(index, url, size, set_name):
     """ 
@@ -169,7 +167,7 @@ def extract_resnet_features_and_store(set_name, batch_start_index, batch_end_ind
     model = Model(inputs=resnet_model.inputs, outputs=resnet_model.layers[-2].output)
     
     # summarize
-    print(model.summary())
+    logger.debug(model.summary())
     
     features = dict()
     index = batch_start_index

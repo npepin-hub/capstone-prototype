@@ -11,13 +11,10 @@ import pickle
 import yaml
 import sys
 
-
 from tensorflow.python.framework.errors_impl import NotFoundError
 from tensorflow.keras.callbacks import TensorBoard, ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 
-import GloVepreprocessing
-import captiongeneration
 import extraction
 import model
 
@@ -25,15 +22,6 @@ import model
 ##############################################################################################################
 #  This file is used to extract the images from the raw data (url) and store image/caption in .h5 files.     #
 ##############################################################################################################
-
-
-# Get logger
-def setupLogging():
-    log_file_path = settings.log_config
-    with open(log_file_path, 'rt') as file:
-        config = yaml.safe_load(file.read())
-        logging.config.dictConfig(config)
-
 
 def extract_data(set_name, img_size, start_index=0, extraction_size=100000):
 # Extracts image and caption from tsv and store padded(image),caption and HTTPStatus code
@@ -58,9 +46,7 @@ def extract_data(set_name, img_size, start_index=0, extraction_size=100000):
     extraction.request_data_and_store(data_df, img_size, set_name, start_index, extraction_size)
     logger.info("loader.extract_data: all the data have been extracted and stored.")
 
-if __name__ == "__main__":
-    
-    setupLogging()
+if __name__ == "__main__":   
     logger = logging.getLogger()
     
     img_size = sys.argv[2].split(',')

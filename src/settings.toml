@@ -43,6 +43,7 @@ MAX_VOCAB_SIZE= 10000
 #  Model parameters  #
 ######################
 model_path = "../models/"
+refit_path = "../data/checkpoints/"
 
 LOSS = "categorical_crossentropy"
 LEARNING_RATE = 0.001

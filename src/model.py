@@ -22,9 +22,7 @@ def injectAndMerge(preprocessor):
     
     X = Dropout(0.5)(X_input)
     X = Dense(preprocessor.EMBEDDING_SIZE, activation='relu')(X)
-    print(X.shape)
     X = RepeatVector(preprocessor.MAX_SEQUENCE_LENGTH)(X)    
-    print(X.shape)
     
 
     ####################################
@@ -36,7 +34,6 @@ def injectAndMerge(preprocessor):
     Y = Dropout(0.5)(Y)
     Y = LSTM(256, return_sequences=True)(Y)
     Y = TimeDistributed(Dense(preprocessor.EMBEDDING_SIZE))(Y)
-    print(Y.shape) 
  
     
     ###################

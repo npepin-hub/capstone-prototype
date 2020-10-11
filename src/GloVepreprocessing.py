@@ -24,7 +24,6 @@ import tensorflow.keras.backend as K
 import storage
 import extraction
 
-
 class GloVepreprocessor(object):
 #########################################################################    
                        # Class Variables #
@@ -58,9 +57,9 @@ class GloVepreprocessor(object):
     
 
     
-#########################################################################    
-    
+#########################################################################       
     def __init__(self):
+
         weights = []
         word2idx = {}
         idx2word =  {}
@@ -71,20 +70,12 @@ class GloVepreprocessor(object):
         self.fit_tokenizer()
         self.load_GloVe()
 
-        
-    ####################
-    # Logging Set up   #
-    ####################
-    def setupLogging(self):
-        with open(settings.log_config, 'rt') as file:
-            config = yaml.safe_load(file.read())
-            logging.config.dictConfig(config)
-            
 
     ########################
     # Retrieve Glove Files #
     ########################
     def import_GloVe_files(self):
+        logger = logging.getLogger()
         # Create glove directory
         if not os.path.isdir(self.glove_dir):
             os.makedirs(self.glove_dir)
@@ -97,11 +88,11 @@ class GloVepreprocessor(object):
             local_zip_file_path = os.path.join(self.glove_dir, os.path.basename(self.glove_url))
 
             if not os.path.isfile(local_zip_file_path):
-                print(f'Retrieving glove weights from {self.glove_url}')
+                logger.info(f'Retrieving glove weights from {self.glove_url}')
                 urllib.request.urlretrieve(self.glove_url, local_zip_file_path)
 
             with zipfile.ZipFile(local_zip_file_path, 'r') as z:
-                print(f'Extracting glove weights from {local_zip_file_path}')
+                logger.info(f'Extracting glove weights from {local_zip_file_path}')
                 z.extractall(path=self.glove_dir)
 
     ############################################
@@ -137,8 +128,7 @@ class GloVepreprocessor(object):
         remove = set(wordsintokenizer) - set(wordsinoriginalembedmatrix)              
         # removing the words from the tokenizer so that all the words remaining will exist in the embedding matrix
         commonwords = list(filter(lambda x: x not in remove, wordsintokenizer.keys()))
-        
-        
+            
         preword2idx = {'[PAD]': self.PAD_IDX, settings.start_seq: self.CLS_IDX, settings.end_seq: self.SEP_IDX, '[UNK]': self.UNKNOWN_IDX}
         preidx2word = { self.PAD_IDX :'[PAD]' , self.CLS_IDX :settings.start_seq , self.SEP_IDX :settings.end_seq , self.UNKNOWN_IDX :'[UNK]'}
         n = len(preword2idx)
@@ -149,7 +139,6 @@ class GloVepreprocessor(object):
         # Assemble the above 4 token to word2idx and idx2word
         self.word2idx = preword2idx
         self.idx2word = preidx2word
-
 
         w = []
         # weights - VOCAB_LENGTH x EMBEDDING_DIMENTION matrix
@@ -238,7 +227,7 @@ class GloVepreprocessor(object):
                             out_seq = to_categorical([out_seq], num_classes=self.VOCAB_SIZE)[0]
                             # store
                             if (in_seq[0] != 1):
-                                logger.INFO("IN SEQUENCE: "+ str(in_seq))
+                                logger.info("IN SEQUENCE: "+ str(in_seq))
                             
                             X.append(features.transpose())
                             Yin.append(in_seq)
@@ -273,7 +262,6 @@ class GloVepreprocessor(object):
 
     
     def get_loss_function(self):
-
         # Masking the ['PAD'] on Loss function -> ie: weights the padded areas to 0 in each caption to focus on "true" words only.
         # TODO: See how to add a Masking Layer as part of the model
         def masked_categorical_crossentropy(y_true, y_pred):
@@ -291,31 +279,20 @@ class GloVepreprocessor(object):
 
         return masked_categorical_crossentropy
      
-        ########################
-        #  Caption Generation  #
-        ########################                
-        # generate a description for the features of an image
-    def generate_description(self, model, photo):
-        # Seed the generation process
-        in_text = settings.start_seq
-        # Iterate over the whole length of the sequence
-        for i in range(preprocessor.MAX_SEQUENCE_LENGTH):
-            # integer encode input sequence
-            sequence = preprocessor.texts_to_sequences([in_text])[0]
-            # pad input
-            sequence = pad_sequences([sequence], maxlen=preprocessor.MAX_SEQUENCE_LENGTH)
-            # predict next word
-            yhat = model.predict([photo,sequence], verbose=0)
-            # convert probability to integer
-            yhat = np.argmax(yhat)
-            # map integer to word
-            word = preprocessor.word_for_id(yhat)
 
-            # append as input for generating the next word
-            in_text += ' ' + word
-            # stop if we predict the end of the sequence
-            if word == setting.end_seq:
-                break
-        return in_text
-    
-    
+###############################################################################
+#  End of Class
+###############################################################################    
+def preprocessor_factory():
+    logger = logging.getLogger()   
+    # Get embedding matrix
+    preprocessor = None
+    try:
+        with open(settings.glove_embed_data, 'rb') as handle:
+            preprocessor = pickle.load(handle)
+    except FileNotFoundError:      
+        preprocessor = GloVepreprocessor()
+        with open(settings.glove_embed_data, 'wb') as handle:
+            logger.info("Before preprocessor pickle dump")
+            pickle.dump(preprocessor, handle)
+    return preprocessor

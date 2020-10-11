@@ -13,7 +13,6 @@ import requests
 import yaml
 
 
-
 #####################################################################################################################
 #   This file provides functions that store and access the raw data that will be used for training                  #
 #   and validating our model.                                                                                       #
@@ -97,21 +96,6 @@ def exist(set_name ,index):
             logger.info("storage.exist function: "+set_name+"-- Index# "+str(index)+" Error: "+str(e))
         return False
     
-    
-  # lock = FileLock(lock_path)
-  #  lock.acquire()  
-  #  file = None
-  #  try:      
-  #      file = h5py.File(file_path , "r")
-  #      if (str(index) in file):
-  #          return True
-  #  except OSError as e:
-  #      logger.info("storage.exist function: "+set_name+"-- Index# "+str(index)+" Error: "+str(e))
-  #  finally:
-  #      if file != None:
-  #          file.close()
-  #      lock.release()
-  #  return False
                      
 ##############################################################################                    
 #     Read/write (image/caption/http request status code) into .h5 files     #
