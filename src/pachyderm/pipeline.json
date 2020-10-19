@@ -1,0 +1,67 @@
+
+{
+  "pipeline": {
+    "name": "images"
+  },
+  "description": "A pipeline that extracts images from raw tsv files.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_images_from_rawdata"],
+    "image": "npepin/capstone-prototype:0.0.3"
+  },
+  "input": {
+    "pfs": {
+      "repo": "rawdata",
+      "glob": "/*/*"
+    }
+  },
+  "parallelism_spec": {
+    "constant": 20
+  }
+}
+{
+    "pipeline": {
+      "name": "features"
+    },
+    "description": "A pipeline that extracts the features of given images.",
+    "transform": {
+      "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_features_from_image"],
+      "image": "npepin/capstone-prototype:0.0.3"
+    },
+    "input": {
+      "pfs": {
+        "repo": "images",
+        "glob": "/*"
+      }
+    },
+    "parallelism_spec": {
+      "constant": 10
+    }
+}
+{
+  "pipeline": {
+    "name": "model"
+  },
+  "description": "Training of the model.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=train_model", "--modeldir=/pfs/model"],
+    "image": "npepin/capstone-prototype:0.0.3"
+  },
+  "input": {
+    "join": [
+      {
+        "pfs": {
+          "repo": "rawdata",
+          "glob": "/*/(*)",
+          "join_on": "$1"
+        }
+      },
+     {
+       "pfs": {
+         "repo": "features",
+         "glob": "/(*)-*.png.features",
+         "join_on": "$1"
+       }
+     }
+   ]
+ }
+}
