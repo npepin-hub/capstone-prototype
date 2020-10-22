@@ -1,0 +1,32 @@
+{
+  "pipeline": {
+      "name": "inspect-input"
+  },
+  "description": "Inspect /pfs/ input.",
+  "transform": {
+      "cmd": [
+          "/bin/sh"
+      ],
+      "stdin": [
+          "DIRS=`ls -d /pfs/*`",
+          "./startup.sh $DIRS"
+      ],
+      "image": "iankoulski/tree"
+  },
+  "input": {
+    "union": [
+      {
+        "pfs": {
+          "repo": "rawdata",
+          "glob": "/"
+        }
+      },
+     {
+       "pfs": {
+         "repo": "features",
+         "glob": "/"
+       }
+     }
+   ]
+ }
+}

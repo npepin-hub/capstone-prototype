@@ -1,0 +1,30 @@
+{
+  "pipeline": {
+    "name": "model"
+  },
+  "description": "Training of the model.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=train_model", "--modeldir=/pfs/model"],
+    "image": "npepin/capstone-prototype:0.0.5"
+  },
+  "input": {
+    "union": [
+      {
+        "pfs": {
+          "repo": "rawdata",
+          "glob": "/"
+        }
+      },
+     {
+       "pfs": {
+         "repo": "features",
+         "glob": "/"
+       }
+     }
+   ]
+ },
+"parallelism_spec": {
+    "constant": 1
+  },
+ "enable_stats": true
+}

@@ -271,10 +271,12 @@ class GloVepreprocessor(object):
             features_path = os.path.join(trainingset_dir, os.path.split(caption_file_path)[1]+'-'+str(index)+'.png.features')
             try:
                 with open(features_path, 'rb') as handle:
+                    logger.info(handle)
                     features = pickle.load(handle)
-            except FileNotFoundError: 
-                logger.info("FileNotFoundError" + features_path)     
+            except Exception as e: 
+                logger.info(e)     
                 continue
+
         
             seq = self.texts_to_sequences([str(caption)])[0]
 

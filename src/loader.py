@@ -39,7 +39,7 @@ def extract_data(set_name, img_size, start_index=0, extraction_size=100000):
         data_df = pd.read_table(validation_rawdata_file_path, header = None, names = ['caption', 'url']) 
 
     else:
-        logger.info("loader.extract_data: get your set_name right! What is it you want to load again?")
+        logger.info("loader.extract_data: get your set_name right! It's either train or validate. What is it you want to load again?")
         return
     
     # Extract images and stores images/captions

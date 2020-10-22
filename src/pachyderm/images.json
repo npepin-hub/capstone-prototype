@@ -1,0 +1,21 @@
+
+{
+  "pipeline": {
+    "name": "images"
+  },
+  "description": "A pipeline that extracts images from raw tsv files.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_images_from_rawdata"],
+    "image": "npepin/capstone-prototype:0.0.5"
+  },
+  "input": {
+    "pfs": {
+      "repo": "rawdata",
+      "glob": "/*/*"
+    }
+  },
+  "parallelism_spec": {
+    "constant": 20
+  },
+  "enable_stats": true
+}

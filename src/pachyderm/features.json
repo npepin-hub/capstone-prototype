@@ -1,0 +1,21 @@
+
+{
+  "pipeline": {
+    "name": "features"
+  },
+  "description": "A pipeline that extracts the features of given images.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_features_from_image"],
+    "image": "npepin/capstone-prototype:0.0.5"
+  },
+  "input": {
+    "pfs": {
+      "repo": "images",
+      "glob": "/*"
+    }
+  },
+  "parallelism_spec": {
+    "constant": 4
+  },
+  "enable_stats": true
+}
