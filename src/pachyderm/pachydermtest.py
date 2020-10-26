@@ -13,6 +13,7 @@ from PIL import Image
 from tensorflow.keras.applications import resnet, resnet50
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
+from tensorflow.keras.models import load_model
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.applications.resnet import preprocess_input, decode_predictions
 
@@ -64,10 +65,11 @@ def get_inference_model(model_path, preprocessor):
     try:        
         logger.info("Loading model for inference") 
         #inference_model.load_weights(f"{checkpoint_path}wtrain-{epoch:03d}")
-        inference_model = Model.load_model(model_path)
+        inference_model = load_model(model_path)
         return inference_model
-    except Exception:
+    except Exception as e:
         logger.info("No weights to load - Sorry!")
+        logger.info(e)
         inference_model = model.injectAndMerge(preprocessor)
         return inference_model
     
