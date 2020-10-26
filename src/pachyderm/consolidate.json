@@ -5,7 +5,7 @@
   "description": "Prep data for the training of model.",
   "transform": {
     "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=consolidate"],
-    "image": "npepin/capstone-prototype:1"
+    "image": "npepin/capstone-prototype:7"
   },
   "input": {
     "join": [

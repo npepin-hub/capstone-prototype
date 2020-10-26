@@ -6,7 +6,7 @@
   "description": "A pipeline that extracts images from raw tsv files.",
   "transform": {
     "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_images_from_rawdata"],
-    "image": "npepin/capstone-prototype:1"
+    "image": "npepin/capstone-prototype:7"
   },
   "input": {
     "pfs": {

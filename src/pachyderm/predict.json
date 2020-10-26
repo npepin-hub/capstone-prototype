@@ -1,0 +1,30 @@
+{
+  "pipeline": {
+    "name": "predict"
+  },
+  "description": "Predict the caption of a given image.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=predict"],
+    "image": "npepin/capstone-prototype:8"
+  },
+  "input": {
+    "cross": [
+      {
+        "pfs": {
+          "repo": "model",
+          "glob": "/"
+        }
+      },
+     {
+       "pfs": {
+         "repo": "inpredict",
+         "glob": "/*"
+       }
+     }
+   ]
+ },
+"parallelism_spec": {
+    "constant": 1
+  },
+ "enable_stats": true
+}

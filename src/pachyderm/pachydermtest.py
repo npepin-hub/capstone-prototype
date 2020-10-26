@@ -14,14 +14,20 @@ from tensorflow.keras.applications import resnet, resnet50
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.applications.resnet import preprocess_input, decode_predictions
 
 sys.path.append('/src/')
 #sys.path.append('..')
 import extraction
 import GloVepreprocessing
 import model
+import predict as inference
 from config import settings
 
+
+'''
+    Image extraction from urls
+'''
 def extract_images_from_rawdata(rawdata_file_path, img_size):
     data_df = None
 
@@ -31,7 +37,7 @@ def extract_images_from_rawdata(rawdata_file_path, img_size):
  
     image_dir_path = os.path.join("/pfs/out", os.path.split(rawdata_file_path)[1])
     os.makedirs(image_dir_path, exist_ok=True) 
-    # Extract images and stores images/captions    
+    # Extract images from url  
     for index, row in data_df.iterrows(): 
         logger.info("Extracting image " + str(index))
         status, image = extraction.get_image(index, row.url, img_size, rawdata_file_path)        
@@ -41,15 +47,36 @@ def extract_images_from_rawdata(rawdata_file_path, img_size):
             image.save(image_path, "png")
 
 
-def get_resnet_model():
-    #Load the ResNet50 model
+def get_features_model():
+    #Load the pretrained ResNet50 model for features extraction
     image_shape=(settings.image_shape[0],settings.image_shape[1],settings.image_shape[2])
     X_input = Input(image_shape, name="image_input")
     resnet_model = resnet50.ResNet50(weights='imagenet',include_top=True, input_tensor= X_input) 
-    model = Model(inputs=resnet_model.inputs, outputs=resnet_model.layers[-2].output)
-    return model
+    features_model = Model(inputs=resnet_model.inputs, outputs=resnet_model.layers[-2].output)
+    
+    return features_model
+
+def get_inference_model(model_path, preprocessor):
+    #Load the trained model for inference
+    logger = logging.getLogger()
+    logger.info("Getting the inference model: " + model_path)
+    
+    try:        
+        logger.info("Loading model for inference") 
+        #inference_model.load_weights(f"{checkpoint_path}wtrain-{epoch:03d}")
+        inference_model = Model.load_model(model_path)
+        return inference_model
+    except Exception:
+        logger.info("No weights to load - Sorry!")
+        inference_model = model.injectAndMerge(preprocessor)
+        return inference_model
+    
+    
 
 
+'''
+    Features extraction from Images
+'''
 def extract_features_from_image(model, image_filename, img_size):
 # Extracts the features of a given image 
     logger = logging.getLogger()
@@ -74,6 +101,9 @@ def extract_features_from_image(model, image_filename, img_size):
         pickle.dump(features, handle) 
 
 
+'''
+    Gathering of data to feed the model
+'''
 def consolidate():
     for caption_dir_name, _, files in os.walk("/pfs/rawdata"):
         for caption_file_name in files:
@@ -99,7 +129,9 @@ def consolidate():
                     continue
                                     
     
-
+'''
+    Training of the model
+'''
 def train(model_dir):
     learning_rate = 0.01
     loss="categorical_crossentropy"
@@ -117,7 +149,35 @@ def train(model_dir):
     generator = preprocessor.pachyderm_dataset("/pfs/consolidate")
     training_model.fit(generator, epochs=1, verbose=1, workers=1)
     
-    training_model.save(os.path.join("/pfs/out", "model.h5"))
+    training_model.save(os.path.join("/pfs/out"))
+
+'''
+    Caption prediction of an image
+'''
+def predict(image_path, preprocessor, features_model, inference_model, image_size=(settings.image_shape[0],settings.image_shape[1])):
+    logger = logging.getLogger()
+    logger.info("Entering the predict function.")
+    
+    # Image preparation for features extraction
+    image = Image.open(image_path)
+    img = np.asarray(image.resize(size=image_size))
+    image_batch = np.expand_dims(img, axis=0)
+    image_batch = preprocess_input(image_batch)
+
+    # get features
+    logger.info("Extracting features from image")
+    features = features_model.predict(image_batch, verbose=0)   
+    logger.info("Description generation") 
+    
+    caption = inference.generate_description(inference_model, features, preprocessor)
+    prediction_path = os.path.join("/pfs/out", "prediction.txt")
+    logger.info("Saving the caption prediction " + prediction_path)
+ 
+    with open(prediction_path, "w") as file:
+        file.write(caption)
+   
+    return caption
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Train a caption generation model.')
@@ -136,19 +196,32 @@ if __name__ == "__main__":
     logger.info("Stage : " + args.stage)
 
     if args.stage == "extract_images_from_rawdata":
-        # walk /pfs/rawdata and extract the image from their url on every file found
+        # walks /pfs/rawdata and extract the image from their url on every file found
         for dirpath, _, files in os.walk("/pfs/rawdata"):
             for file in files:
                 extract_images_from_rawdata(os.path.join(dirpath, file), (224,224))
     elif args.stage == "extract_features_from_image":
-        model = get_resnet_model()
-        # walk /pfs/rawdata and extract the image from their url on every file found
+        model = get_features_model()
+        # walks /pfs/images and extract the features for each image found
         for dirpath, _, files in os.walk("/pfs/images"):
             for file in files:
                 extract_features_from_image(model, os.path.join(dirpath, file),(224,224))
     elif args.stage == "consolidate":
+        # aggregates data from /pfs/rawdata(captions) and from /pfs/features(features) to feed the model
         consolidate()       
     elif args.stage == "train_model":
-        train(args.modeldir)       
+        # A first pass at training //todo checkpoints callback and load of a given model to retrain
+        train(args.modeldir)
+    elif args.stage == "predict":
+        logger = logging.getLogger() 
+        # Get embedding matrix
+        preprocessor = GloVepreprocessing.preprocessor_factory()
+        # Get models
+        features_model = get_features_model()
+        inference_model = get_inference_model("/pfs/model", preprocessor)
+        
+        # Predict the caption from the given image using the trained model //todo choose what version of the model should be loaded
+        image_path = os.path.join("/pfs/inpredict", "image.png")
+        predict(image_path, preprocessor, features_model, inference_model)      
     else:
         sys.exit(1)

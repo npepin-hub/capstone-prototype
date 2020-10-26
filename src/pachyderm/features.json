@@ -6,7 +6,7 @@
   "description": "A pipeline that extracts the features of given images.",
   "transform": {
     "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=extract_features_from_image"],
-    "image": "npepin/capstone-prototype:1"
+    "image": "npepin/capstone-prototype:7"
   },
   "input": {
     "pfs": {
