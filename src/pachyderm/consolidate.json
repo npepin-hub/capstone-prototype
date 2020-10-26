@@ -1,0 +1,32 @@
+{
+  "pipeline": {
+    "name": "consolidate"
+  },
+  "description": "Prep data for the training of model.",
+  "transform": {
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=consolidate"],
+    "image": "npepin/capstone-prototype:1"
+  },
+  "input": {
+    "join": [
+      {
+        "pfs": {
+          "repo": "rawdata",
+          "glob": "/*/(*)",
+          "join_on": "$1"
+        }
+      },
+     {
+       "pfs": {
+         "repo": "features",
+         "glob": "/(*)",
+         "join_on": "$1"
+       }
+     }
+   ]
+ },
+"parallelism_spec": {
+    "constant": 4
+  },
+ "enable_stats": true
+}

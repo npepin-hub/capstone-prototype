@@ -258,41 +258,46 @@ class GloVepreprocessor(object):
             logger.debug(".")
             yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
 
-    def pachyderm_dataset(self, caption_file_path, trainingset_dir):
-        logger = logging.getLogger()        
+    def pachyderm_dataset(self, consolidation_dir_path, batch_size=5 ):
+        logger = logging.getLogger()
+        logger.info("Entering Generator")  
+        for bucket_path, _, files in os.walk(consolidation_dir_path):
+            logger.info("Processing Bucket Path" + bucket_path) 
+            for caption_file_name in files:
+                if caption_file_name == "captions.tsv":
+                    caption_file_path = os.path.join(bucket_path,caption_file_name)               
+                    data_df = pd.read_table(caption_file_path, header = None, names = ['caption', 'url'] )
+                    
+                    X , Yin, Yout = [], [], []
 
-        data_df = pd.read_table(caption_file_path, header = None, names = ['caption', 'url'] )
-        X , Yin, Yout = [], [], []
+                    # Extract images and stores images/captions    
+                    for index, row in data_df.iterrows(): 
+                        logger.info("Extracting caption " + str(index))
+                        caption = extraction.final_caption(str(row.caption))
+                        features_path = os.path.join(bucket_path, str(index)+'.png.features')
+                        try:
+                            with open(features_path, 'rb') as handle:
+                                logger.info(handle)
+                                features = pickle.load(handle)
+                        except Exception as e: 
+                            logger.info(e)     
+                            continue
 
-        # Extract images and stores images/captions    
-        for index, row in data_df.iterrows(): 
-            logger.info("Extracting caption " + str(index))
-            caption = extraction.final_caption(str(row.caption))
-            features_path = os.path.join(trainingset_dir, os.path.split(caption_file_path)[1]+'-'+str(index)+'.png.features')
-            try:
-                with open(features_path, 'rb') as handle:
-                    logger.info(handle)
-                    features = pickle.load(handle)
-            except Exception as e: 
-                logger.info(e)     
-                continue
+                        seq = self.texts_to_sequences([str(caption)])[0]
 
-        
-            seq = self.texts_to_sequences([str(caption)])[0]
-
-            # split one sequence into multiple X,y pairs
-            for i in range(1, len(seq)):
-                # split into input and output pair
-                in_seq, out_seq = seq[:i], seq[i]
-                in_seq = pad_sequences([in_seq], maxlen=self.MAX_SEQUENCE_LENGTH, padding='post')[0]
-                # encode output sequence
-                out_seq = to_categorical([out_seq], num_classes=self.VOCAB_SIZE)[0]
-                # store
-                X.append(features.transpose())
-                Yin.append(in_seq)
-                Yout.append(out_seq)
-
-        yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
+                        # split one sequence into multiple X,y pairs
+                        for i in range(1, len(seq)):
+                            # split into input and output pair
+                            in_seq, out_seq = seq[:i], seq[i]
+                            in_seq = pad_sequences([in_seq], maxlen=self.MAX_SEQUENCE_LENGTH, padding='post')[0]
+                            # encode output sequence
+                            out_seq = to_categorical([out_seq], num_classes=self.VOCAB_SIZE)[0]
+                            # store
+                            X.append(features.transpose())
+                            Yin.append(in_seq)
+                            Yout.append(out_seq)
+                    logger.info(len(X))
+                    yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
 
 
     

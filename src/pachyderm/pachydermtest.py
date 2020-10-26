@@ -28,13 +28,15 @@ def extract_images_from_rawdata(rawdata_file_path, img_size):
     # Read TSV file
     logger.info("Starting rawdata extraction" + rawdata_file_path)
     data_df = pd.read_table(rawdata_file_path, header = None, names = ['caption', 'url'] )
-    
+ 
+    image_dir_path = os.path.join("/pfs/out", os.path.split(rawdata_file_path)[1])
+    os.makedirs(image_dir_path, exist_ok=True) 
     # Extract images and stores images/captions    
     for index, row in data_df.iterrows(): 
         logger.info("Extracting image " + str(index))
         status, image = extraction.get_image(index, row.url, img_size, rawdata_file_path)        
         if status == 200:
-            image_path = os.path.join("/pfs/out", os.path.split(rawdata_file_path)[1]+'-'+str(index)+'.png')
+            image_path = os.path.join(image_dir_path,str(index)+'.png')
             logger.info("Saving image " + image_path)
             image.save(image_path, "png")
 
@@ -57,14 +59,46 @@ def extract_features_from_image(model, image_filename, img_size):
     img = np.asarray(image.resize(size=img_size))
     img = np.expand_dims(img, axis=0)
     img = resnet.preprocess_input(img)
+
+    image_name = os.path.split(image_filename)[1] # 1.png
+    image_tail = os.path.split(image_filename)[0] # /pfs/images/000000000
+    features_dir_path = os.path.join("/pfs/out", os.path.split(image_tail)[1]) #/pfs/out/00000000 
+    os.makedirs(features_dir_path, exist_ok=True) 
             
     # get features
     features = model.predict(img, verbose=0)
-    features_path = os.path.join("/pfs/out", os.path.split(image_filename)[1]+".features")
+    features_path = os.path.join(features_dir_path, image_name + ".features")
     logger.info("Saving features " + features_path)
  
     with open(features_path, 'wb') as handle:
         pickle.dump(features, handle) 
+
+
+def consolidate():
+    for caption_dir_name, _, files in os.walk("/pfs/rawdata"):
+        for caption_file_name in files:
+            bucket = caption_file_name
+            # create repository named after each caption file /pfs/out/00000000 
+            bucket_dir_path = os.path.join("/pfs/out", bucket) 
+            os.makedirs(bucket_dir_path, exist_ok=True)
+            # Soft link for caption files 
+            src = os.path.join(caption_dir_name, caption_file_name) 
+            dst = os.path.join(bucket_dir_path, "captions.tsv") 
+            os.symlink(src, dst)
+                          
+            data_df = pd.read_table(src, header = None, names = ['caption', 'url'] )   
+            for index, _ in data_df.iterrows(): 
+                # Soft link for features files 
+                features_src = os.path.join("/pfs/features", bucket, str(index)+'.png.features')
+                features_dst = os.path.join(bucket_dir_path, str(index)+'.png.features')
+                try:
+                    with open(features_src, 'rb') as handle:
+                        os.symlink(features_src, features_dst)
+                except Exception as e: 
+                    logger.info(e)     
+                    continue
+                                    
+    
 
 def train(model_dir):
     learning_rate = 0.01
@@ -80,10 +114,8 @@ def train(model_dir):
     training_model.compile(loss=loss, optimizer=Adam(lr = learning_rate))
     logger.info(training_model.summary())
 
-    for dirpath, _, files in os.walk("/pfs/rawdata"):
-        for caption_file_path in files:
-            batch = preprocessor.pachyderm_dataset(os.path.join(dirpath,caption_file_path),"/pfs/features")
-            training_model.fit(batch, epochs=1, verbose=1)
+    generator = preprocessor.pachyderm_dataset("/pfs/consolidate")
+    training_model.fit(generator, epochs=1, verbose=1, workers=1)
     
     training_model.save(os.path.join("/pfs/out", "model.h5"))
 
@@ -114,6 +146,8 @@ if __name__ == "__main__":
         for dirpath, _, files in os.walk("/pfs/images"):
             for file in files:
                 extract_features_from_image(model, os.path.join(dirpath, file),(224,224))
+    elif args.stage == "consolidate":
+        consolidate()       
     elif args.stage == "train_model":
         train(args.modeldir)       
     else:

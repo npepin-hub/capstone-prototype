@@ -245,7 +245,6 @@ def get_image_resnet_features(index, model, set_name, image_size=(settings.image
     
     except KeyError:
         # Ignores files not found - probably an HHTP error when requesting the URL
-        missed_idx = missed_idx + 1
         logger.info("extraction:get_image_resnet_features: "+set_name+ " index:" +str(index)+" Image not present in file. ")
 
     return caption, status, None 
