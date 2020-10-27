@@ -258,9 +258,13 @@ class GloVepreprocessor(object):
             logger.debug(".")
             yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
 
-    def pachyderm_dataset(self, consolidation_dir_path, batch_size=5 ):
+    def pachyderm_dataset(self, consolidation_dir_path, batch_size=5):
         logger = logging.getLogger()
-        logger.info("Entering Generator")  
+        logger.info("Entering Generator") 
+
+        X , Yin, Yout = [], [], [] 
+        batch_idx = 0
+        
         for bucket_path, _, files in os.walk(consolidation_dir_path):
             logger.info("Processing Bucket Path" + bucket_path) 
             for caption_file_name in files:
@@ -268,9 +272,7 @@ class GloVepreprocessor(object):
                     caption_file_path = os.path.join(bucket_path,caption_file_name)               
                     data_df = pd.read_table(caption_file_path, header = None, names = ['caption', 'url'] )
                     
-                    X , Yin, Yout = [], [], []
-
-                    # Extract images and stores images/captions    
+                    # Iterate on the captions.tsv   
                     for index, row in data_df.iterrows(): 
                         logger.info("Extracting caption " + str(index))
                         caption = extraction.final_caption(str(row.caption))
@@ -296,8 +298,12 @@ class GloVepreprocessor(object):
                             X.append(features.transpose())
                             Yin.append(in_seq)
                             Yout.append(out_seq)
-                    logger.info(len(X))
-                    yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
+                        
+                        batch_idx += 1
+                        if (batch_idx > batch_size):
+                            yield([np.reshape(X, (len(X), 2048)),np.reshape(Yin, (len(Yin), self.MAX_SEQUENCE_LENGTH))],[np.reshape(Yout, (len(Yout), self.VOCAB_SIZE))])
+                            X , Yin, Yout = [], [], [] 
+                            batch_idx = 0
 
 
     

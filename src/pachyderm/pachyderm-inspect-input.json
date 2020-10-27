@@ -9,22 +9,25 @@
       ],
       "stdin": [
           "DIRS=`ls -d /pfs/*`",
+          "echo Inspect /pfs/ input.",
           "./startup.sh $DIRS"
       ],
       "image": "iankoulski/tree"
   },
   "input": {
-    "union": [
+    "join": [
       {
         "pfs": {
           "repo": "rawdata",
-          "glob": "/"
+          "glob": "/*/(*)",
+          "join_on": "$1"
         }
       },
      {
        "pfs": {
          "repo": "features",
-         "glob": "/"
+         "glob": "/(*)-*.png.features",
+         "join_on": "$1"
        }
      }
    ]

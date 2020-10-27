@@ -5,16 +5,16 @@
   "description": "Training of the model.",
   "transform": {
     "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=train_model", "--modeldir=/pfs/model"],
-    "image": "npepin/capstone-prototype:8"
+    "image": "npepin/capstone-prototype:15"
   },
   "input": {
     "pfs": {
       "repo": "consolidate",
       "glob": "/"
     }
-  },
-"parallelism_spec": {
-    "constant": 1
-  },
- "enable_stats": true
+  },  
+  "parallelism_spec": {
+      "constant": 1
+    },
+  "enable_stats": true
 }

@@ -5,14 +5,14 @@
   "description": "Predict the caption of a given image.",
   "transform": {
     "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=predict"],
-    "image": "npepin/capstone-prototype:10"
+    "image": "npepin/capstone-prototype:15"
   },
   "input": {
     "cross": [
       {
         "pfs": {
           "repo": "model",
-          "glob": "/"
+          "glob": "/*/saved"
         }
       },
      {

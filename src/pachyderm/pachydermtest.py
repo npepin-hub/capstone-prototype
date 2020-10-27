@@ -14,6 +14,7 @@ from tensorflow.keras.applications import resnet, resnet50
 from tensorflow.keras.layers import Input
 from tensorflow.keras.models import Model
 from tensorflow.keras.models import load_model
+from tensorflow.keras.callbacks import ModelCheckpoint
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.applications.resnet import preprocess_input, decode_predictions
 
@@ -148,10 +149,21 @@ def train(model_dir):
     training_model.compile(loss=loss, optimizer=Adam(lr = learning_rate))
     logger.info(training_model.summary())
 
-    generator = preprocessor.pachyderm_dataset("/pfs/consolidate")
-    training_model.fit(generator, epochs=1, verbose=1, workers=1)
-    
-    training_model.save(os.path.join("/pfs/out"))
+    # Create a callback that saves the model's weights
+    checkpoint_filepath = '/pfs/out/checkpoints'
+    model_checkpoint_callback = ModelCheckpoint(
+    filepath=checkpoint_filepath,
+    save_weights_only=True,
+    monitor='loss', 
+    save_freq=500,
+    mode='auto',
+    verbose=1,
+    save_best_only=False)
+
+    generator = preprocessor.pachyderm_dataset("/pfs/consolidate", batch_size=10)
+    training_model.fit(generator, epochs=1, verbose=1, callbacks=[model_checkpoint_callback], workers=1)
+    # If all goes well, saves the complete model in a /saved directory - If not, we will need to retrieve the last checkpoint
+    training_model.save(os.path.join("/pfs/out/saved"))
 
 '''
     Caption prediction of an image
@@ -171,8 +183,10 @@ def predict(image_path, preprocessor, features_model, inference_model, image_siz
     features = features_model.predict(image_batch, verbose=0)   
     logger.info("Description generation") 
     
+    # retrieve image name
+    image_name = os.path.split(image_path)[1]
     caption = inference.generate_description(inference_model, features, preprocessor)
-    prediction_path = os.path.join("/pfs/out", "prediction.txt")
+    prediction_path = os.path.join("/pfs/out", image_name+".txt")
     logger.info("Saving the caption prediction " + prediction_path)
  
     with open(prediction_path, "w") as file:
@@ -209,7 +223,7 @@ if __name__ == "__main__":
             for file in files:
                 extract_features_from_image(model, os.path.join(dirpath, file),(224,224))
     elif args.stage == "consolidate":
-        # aggregates data from /pfs/rawdata(captions) and from /pfs/features(features) to feed the model
+        # aggregates data from /pfs/rawdata(captions) and /pfs/features(features) to feed the model
         consolidate()       
     elif args.stage == "train_model":
         # A first pass at training //todo checkpoints callback and load of a given model to retrain
@@ -220,10 +234,11 @@ if __name__ == "__main__":
         preprocessor = GloVepreprocessing.preprocessor_factory()
         # Get models
         features_model = get_features_model()
-        inference_model = get_inference_model("/pfs/model", preprocessor)
+        inference_model = get_inference_model("/pfs/model/saved", preprocessor)
         
         # Predict the caption from the given image using the trained model //todo choose what version of the model should be loaded
-        image_path = os.path.join("/pfs/inpredict", "image.png")
-        predict(image_path, preprocessor, features_model, inference_model)      
+        for dirpath, _, files in os.walk("/pfs/inpredict"):
+            for file in files:
+                predict(os.path.join(dirpath, file), preprocessor, features_model, inference_model)      
     else:
         sys.exit(1)
