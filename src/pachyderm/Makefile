@@ -8,6 +8,6 @@ setup:
 
 predict-test:
 	echo "Creating the inpredict initial repository and the pipeline used to predict captions out of images"
-	#pachctl create repo inpredict
-	#pachctl create pipeline -f predict.json
+	pachctl create repo inpredict
+	pachctl create pipeline -f predict.json
 	pachctl list repo
