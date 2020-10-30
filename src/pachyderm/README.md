@@ -148,7 +148,7 @@ In the `./testdata/` dirctory, run:
 3. Final note: 
     We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to be captioned ('inpredict' Repo) and the latest trained model ('model' Repo). 
 
-![Screen Shot 2020-10-29 at 9.38.49 PM.png](https://www.dropbox.com/s/ipjho4lzakr4ao4/Screen%20Shot%202020-10-29%20at%209.38.49%20PM.png?dl=0&raw=1)
+    ![Screen Shot 2020-10-29 at 9.38.49 PM.png](https://www.dropbox.com/s/ipjho4lzakr4ao4/Screen%20Shot%202020-10-29%20at%209.38.49%20PM.png?dl=0&raw=1)
 
 ## You might find this useful
 Enable stats in development:
