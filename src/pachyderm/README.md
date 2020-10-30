@@ -1,21 +1,21 @@
 # Pachyderm's foundational concepts: tutorial 201
-In this tutorial, we will walk you through the main steps of the migration of an [existing ML](https://github.com/nadegepepin/capstone-prototype) project to Pachyderm's platform. We will add a couple of **tips and tricks** along the way. 
+In this tutorial, we will walk you through the main steps of the migration of an [existing ML](https://github.com/nadegepepin/capstone-prototype) project to Pachyderm's platform. We will add a couple of **tips and tricks** along the way. By the end, you will have been introduced to various Pachyderm's core concepts, a couple of useful how-tos, and you will have set up the foundations of ML pipelines using Pachyderm.
 
 It shoud take you 20 minutes to get there.
 
 ## Prerequisite
-Ideally, you have successfully completed the [OpenCV tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) and are ready to keep exploring Pachyderm.  If not, make sure that you have: 
+Ideally, you have successfully completed the [OpenCV tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) and are ready to keep exploring Pachyderm.  Make sure that you have: 
 - a Pachyderm running [locally](https://docs.pachyderm.com/latest/getting_started/local_installation/) or a workspace on [Pachyderm Hub](https://hub.pachyderm.com/orgs/1008/workspaces)
 - pachctl command-line installed, and your context created (ie: you are logged in)
 - New to pachctl? Install the [autocompletion extention](https://docs.pachyderm.com/latest/getting_started/install-pachctl-completion/) of pachctl. 
 
 ## A little bit of context 
 - As a starting point, we are using a very simple ResNet/LSTM 'inject and merge' captioning model trainable on [google conceptual caption dataset](https://ai.google.com/research/ConceptualCaptions)  (~3.3 M images) 
-- We have reproduced its data extraction/transformation, the training of its model, and its prediction using Pachyderm's platform. 
+- We have adapted its data extraction/transformation, the training of the model, and the prediction to Pachyderm's platform. 
 
 Just like any ML project, you will find 2 sets of pipelines here:
 - A training pipeline that **extracts** and **transforms** our data to **train** our model. In brief:
-    - we feed in a big tsv file of 3.3M caption/URL lines  
+    - we feed in a big tsv file of 3.3M caption/URL lines  (we will keep it at 100 lines in this tutorial but feel free to aim higher afterward)
     - we retrieve each image and extract its features
     - we feed those features along with their caption to our model 
     - we get a final trained *saved_model.h5* as a result
@@ -29,7 +29,7 @@ Our DAGs look like this :
 Note that the training pipelines have been given self-explanatory names. The "consolidate" pipeline is nothing more than a [shuffle pipeline](https://github.com/pachyderm/pachyderm/tree/master/examples/shuffle) (an intermediate processing step that aggregates/joins our features and caption data to feed our model).
 
 
-Optional: More details about the training pipelines (It really is simpler than it looks):
+For the curious mind: More details about the training pipelines (It really is simpler than it looks):
 ![detailed pipelinespng.png](https://www.dropbox.com/s/cyicllgpg3x086k/detailed%20pipelinespng.png?dl=0&raw=1)
 ## Training phase run-through
 1. Let's start by cloning https://github.com/nadegepepin/capstone-prototype
@@ -106,7 +106,7 @@ To prepare our training set with the tuples (caption, features) required, we are
 
     ![Screen Shot 2020-10-29 at 6.07.44 PM.png](https://www.dropbox.com/s/h3jxoz5ds1zr9eo/Screen%20Shot%202020-10-29%20at%206.07.44%20PM.png?dl=0&raw=1)
 
-    To highlights how the join works, we have broken down the Repos' file hierarchy of each pipeline. 
+    To highlight how the join works, we have broken down the Repos' file hierarchy of each pipeline. 
     
 ![Glob _ Join explained.png](https://www.dropbox.com/s/60pwocwi5aavkiy/Glob%20_%20Join%20explained.png?dl=0&raw=1)
 
