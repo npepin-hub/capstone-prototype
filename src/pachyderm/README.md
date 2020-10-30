@@ -1,5 +1,5 @@
 # Pachyderm's foundational concepts: tutorial 201
-In this tutorial, we will walk you through the main steps of the migration of an [existing ML](https://github.com/nadegepepin/capstone-prototype) project to Pachyderm's platform. We will add a couple of **tips and tricks** along the way. By the end, you will have been introduced to various Pachyderm's core concepts, a couple of useful how-tos, and you will have set up the foundations of ML pipelines using Pachyderm.
+In this tutorial, we will walk you through the main steps of the migration of an [existing ML project](https://github.com/nadegepepin/capstone-prototype) to Pachyderm's platform. We will add a couple of **tips and tricks** along the way. By the end, you will have been introduced to various Pachyderm's core concepts, a couple of useful how-tos, and you should be all set to start setting up your own ML pipelines.
 
 It shoud take you 20 minutes to get there.
 
