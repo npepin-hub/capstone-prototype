@@ -90,6 +90,7 @@ You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a
     ![Screen Shot 2020-10-29 at 5.48.09 PM.png](https://www.dropbox.com/s/jmovqhkw3jgyfib/Screen%20Shot%202020-10-29%20at%205.48.09%20PM.png?dl=0&raw=1)
     
 Notice that all 20 Datum(s) are in **one** commit. 
+
 This commit will trigger the first job in our first-in-line pipeline (ie: 'images'). 
 The Datum(s) it contains (20 in our case) will be processed and an output commit created in the output Repo of the 'images' pipeline (conveniently called... 'images'). 
 The output commit will trigger the following job in the next-in-line pipeline (ie:'features'). 
@@ -145,12 +146,15 @@ In the `./testdata/` dirctory, run:
      Check your dashboard, the 'predict' Repo should contain a `image.png.txt` file. 
      You have your caption! Yes, it looks funky. Remember, we have trained our model on a minimal set of data. The predicted caption produced is logically off. It is ok. That was not the point of this training.
 3. Final note: 
-    We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to be captioned ('inpredict' Repo) and the latest trained model ('model' Repo). ![Screen Shot 2020-10-29 at 9.38.49 PM.png](https://www.dropbox.com/s/ipjho4lzakr4ao4/Screen%20Shot%202020-10-29%20at%209.38.49%20PM.png?dl=0&raw=1)
+    We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to be captioned ('inpredict' Repo) and the latest trained model ('model' Repo). 
+
+![Screen Shot 2020-10-29 at 9.38.49 PM.png](https://www.dropbox.com/s/ipjho4lzakr4ao4/Screen%20Shot%202020-10-29%20at%209.38.49%20PM.png?dl=0&raw=1)
 
 ## You might find this useful
 Enable stats in development:
 
 The `"enable_stats": true` parameter [turns on statistics tracking for a pipeline](https://docs.pachyderm.com/latest/reference/pipeline_spec/#enable-stats-optional). Your pipeline will commit datum processing information to a special branch ("stats") in its output repo. It stores useful information about the datum it processes (timing, size, **logs**...). You can access those stats in your dashboard.
+
 ![Screen Shot 2020-10-29 at 10.02.26 PM.png](https://www.dropbox.com/s/6n20ft0lphte3lo/Screen%20Shot%202020-10-29%20at%2010.02.26%20PM.png?dl=0&raw=1)
 
 ## After Thoughts
