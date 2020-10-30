@@ -163,7 +163,8 @@ def train(model_dir):
     generator = preprocessor.pachyderm_dataset("/pfs/consolidate", batch_size=10)
     training_model.fit(generator, epochs=1, verbose=1, callbacks=[model_checkpoint_callback], workers=1)
     # If all goes well, saves the complete model in a /saved directory - If not, we will need to retrieve the last checkpoint
-    training_model.save(os.path.join("/pfs/out/saved"))
+    os.makedirs("/pfs/out/saved", exist_ok=True) 
+    training_model.save("/pfs/out/saved/saved_model.h5")
 
 '''
     Caption prediction of an image
@@ -234,7 +235,7 @@ if __name__ == "__main__":
         preprocessor = GloVepreprocessing.preprocessor_factory()
         # Get models
         features_model = get_features_model()
-        inference_model = get_inference_model("/pfs/model/saved", preprocessor)
+        inference_model = get_inference_model("/pfs/model/saved/saved_model.h5", preprocessor)
         
         # Predict the caption from the given image using the trained model //todo choose what version of the model should be loaded
         for dirpath, _, files in os.walk("/pfs/inpredict"):

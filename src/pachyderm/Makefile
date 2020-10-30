@@ -6,8 +6,8 @@ setup:
 	pachctl create pipeline -f consolidate.json
 	pachctl create pipeline -f model.json
 
-predict-test:
+predict:
 	echo "Creating the inpredict initial repository and the pipeline used to predict captions out of images"
 	pachctl create repo inpredict
 	pachctl create pipeline -f predict.json
-	pachctl list repo
+
