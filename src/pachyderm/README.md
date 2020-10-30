@@ -56,19 +56,20 @@ For the curious mind: More details about the training pipelines (It really is si
             pachctl list pipeline
     ![Screen Shot 2020-10-29 at 5.21.46 PM.png](https://www.dropbox.com/s/clckt8a29gry6xo/Screen%20Shot%202020-10-29%20at%205.21.46%20PM.png?dl=0&raw=1)
 
-All of our pipelines are running, ready for the execution of the jobs triggered by input commits in their input Repo. 
+    All of our pipelines are running, ready for the execution of the jobs triggered by input commits in their input Repo. 
 
-Did you notice the `standby` state of the pipeline 'images'?  [A pipeline in standby will have no pods running and thus will consume no resources](https://docs.pachyderm.com/latest/reference/pipeline_spec/). This pipeline will activate when datum(s) are commited in its input Repo.
-It is as simple as a `"stanby": true` line in your pipeline .json file. See [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json).
+    Did you notice the `standby` state of the pipeline 'images'?  [A pipeline in standby will have no pods running and thus will consume no resources]  (https://docs.pachyderm.com/latest/reference/pipeline_spec/). This pipeline will activate when datum(s) are commited in its input Repo.
+    It is as simple as a `"stanby": true` line in your pipeline .json file. See [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json).
 
 4. Let's inject our training data into our 'rawdata' Repository and see what happens. In the `./testdata/` directory, run:
 
         pachctl put file rawdata@master -f test.tsv --split line --target-file-datums 5
-    Note that we used the `--split  --target-file-datums` [option](https://docs.pachyderm.com/latest/how-tos/splitting-data/adjusting_data_processing_w_split/). We are dividing our test.tsv file into smaller .tsv of 5 lines each. Because our file contains 100 lines total, this will output 20 Datum(s) of 5 lines each in our rawdata Repository. The core use of this split is the ability to **parallelize the job processing**.
+        
+    Note that we used the `--split  --target-file-datums` [option](https://docs.pachyderm.com/latest/how-tos/splitting-data/adjusting_data_processing_w_split/). We are dividing our test.tsv file into smaller .tsv of 5 lines each. Because our original file contains 100 lines total, this will output 20 Datum(s) of 5 lines each in our rawdata Repository. The core use of this split is the ability to [**parallelize the job processing**](https://docs.pachyderm.com/latest/concepts/advanced-concepts/distributed_computing/).
     You can check your job list by running:
     
         pachctl list job
-    ![Screen Shot 2020-10-29 at 8.36.09 PM.png](https://www.dropbox.com/s/uv6g8tug75r508n/Screen%20Shot%202020-10-29%20at%208.36.09%20PM.png?dl=0&raw=1)
+   ![Screen Shot 2020-10-29 at 8.36.09 PM.png](https://www.dropbox.com/s/uv6g8tug75r508n/Screen%20Shot%202020-10-29%20at%208.36.09%20PM.png?dl=0&raw=1)
     
     Then look into the logs of a specific job:
     
@@ -94,7 +95,7 @@ Notice that all 20 Datum(s) are in **one** commit.
 
 This commit will trigger the first job in our first-in-line pipeline (ie: 'images'). 
 The Datum(s) it contains (20 in our case) will be processed and an output commit created in the output Repo of the 'images' pipeline (conveniently called... 'images'). 
-The output commit will trigger the following job in the next-in-line pipeline (ie:'features'). 
+This output commit will trigger the following job in the next-in-line pipeline (ie:'features'). 
 
 You got the idea... All the way to our final trained 'saved_model.h5' model.
 
