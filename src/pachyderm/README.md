@@ -1,7 +1,7 @@
 # Pachyderm's foundational concepts: tutorial 201
 In this tutorial, we will walk you through the main steps of the migration of an [existing ML project](https://github.com/nadegepepin/capstone-prototype) to Pachyderm's platform. We will add a couple of **tips and tricks** along the way. By the end, you will have been introduced to various Pachyderm's core concepts, a couple of useful how-tos, and you should be all set to start setting up your own ML pipelines.
 
-It shoud take you 20 minutes to get there.
+It will take you 20 minutes to get there.
 
 ## Prerequisite
 Ideally, you have successfully completed the [OpenCV tutorial](https://docs.pachyderm.com/latest/getting_started/beginner_tutorial/) and are ready to keep exploring Pachyderm.  Make sure that you have: 
@@ -15,7 +15,7 @@ Ideally, you have successfully completed the [OpenCV tutorial](https://docs.pach
 
 Just like any ML project, you will find 2 sets of pipelines here:
 - A training pipeline that **extracts** and **transforms** our data to **train** our model. In brief:
-    - we feed in a big tsv file of 3.3M caption/URL lines  (we will keep it at 100 lines in this tutorial but feel free to aim higher afterward)
+    - we feed in a big tsv file of 3.3M caption/URL lines  (We will keep it at 100 lines in this tutorial, but feel free to aim higher afterward)
     - we retrieve each image and extract its features
     - we feed those features along with their caption to our model 
     - we get a final trained *saved_model.h5* as a result
@@ -31,6 +31,7 @@ Note that the training pipelines have been given self-explanatory names. The "co
 
 For the curious mind: More details about the training pipelines (It really is simpler than it looks):
 ![detailed pipelinespng.png](https://www.dropbox.com/s/cyicllgpg3x086k/detailed%20pipelinespng.png?dl=0&raw=1)
+
 ## Training phase run-through
 1. Let's start by cloning https://github.com/nadegepepin/capstone-prototype
 2. Training pipeline setup: In pachyderm's root directory `src/pachyderm`, let's run the **setup** target of our `Makefile`:
@@ -55,7 +56,7 @@ For the curious mind: More details about the training pipelines (It really is si
             pachctl list pipeline
     ![Screen Shot 2020-10-29 at 5.21.46 PM.png](https://www.dropbox.com/s/clckt8a29gry6xo/Screen%20Shot%202020-10-29%20at%205.21.46%20PM.png?dl=0&raw=1)
 
-All of our pipelines are running, ready for the execution of the jobs triggered by an input commit in their entry Repo. 
+All of our pipelines are running, ready for the execution of the jobs triggered by input commits in their input Repo. 
 
 Did you notice the `standby` state of the pipeline 'images'?  [A pipeline in standby will have no pods running and thus will consume no resources](https://docs.pachyderm.com/latest/reference/pipeline_spec/). This pipeline will activate when datum(s) are commited in its input Repo.
 It is as simple as a `"stanby": true` line in your pipeline .json file. See [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json).
@@ -63,7 +64,7 @@ It is as simple as a `"stanby": true` line in your pipeline .json file. See [ima
 4. Let's inject our training data into our 'rawdata' Repository and see what happens. In the `./testdata/` directory, run:
 
         pachctl put file rawdata@master -f test.tsv --split line --target-file-datums 5
-    Note that we used the `--split  --target-file-datums` [option](https://docs.pachyderm.com/latest/how-tos/splitting-data/adjusting_data_processing_w_split/). We are dividing our test.tsv file into chunks of 5 lines. Because our file contains 100 lines total, this will output 20 Datum(s) of 5 lines each in our rawdata Repository. The core use of this split is the ability to **parallelize the job processing**.
+    Note that we used the `--split  --target-file-datums` [option](https://docs.pachyderm.com/latest/how-tos/splitting-data/adjusting_data_processing_w_split/). We are dividing our test.tsv file into smaller .tsv of 5 lines each. Because our file contains 100 lines total, this will output 20 Datum(s) of 5 lines each in our rawdata Repository. The core use of this split is the ability to **parallelize the job processing**.
     You can check your job list by running:
     
         pachctl list job
