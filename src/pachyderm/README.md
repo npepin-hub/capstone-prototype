@@ -83,7 +83,7 @@ For the curious mind: More details about the training pipeline (It really is sim
 
 ![Screen Shot 2020-10-29 at 5.42.27 PM.png](https://www.dropbox.com/s/2mbsnlv0d9kk68y/Screen%20Shot%202020-10-29%20at%205.42.27%20PM.png?dl=0&raw=1) 
 
-You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a file displays its content. 
+   You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a file displays its content. 
 
 6. Have a look at the commits in rawdata:
 
@@ -103,7 +103,7 @@ You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a
     In [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json), we have used the constant field `parallelism_spec` to set the number     of workers to 20 for this job.
 
     ![Screen Shot 2020-10-29 at 10.12.21 PM.png](https://www.dropbox.com/s/ogeesa2n0t6a6y1/Screen%20Shot%202020-10-29%20at%2010.12.21%20PM.png?dl=0&raw=1)
-8. Now, let's have a closer look at how our data are consolidated in our shuffle pipeline [consolidate.json](https://github.com/nadegepepin/capstone-   prototype/blob/master/src/pachyderm/consolidate.json):
+8. Now, let's have a closer look at how our data are consolidated in our shuffle pipeline [consolidate.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/consolidate.json):
     To prepare our training set with the tuples (caption, features) required, we are combining files that reside in 2 separate Pachyderm repositories ('rawdata' and 'features')       and match a particular naming pattern using a [Join](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/join/). See the "glob" patterns below.
 
     ![Screen Shot 2020-10-29 at 6.07.44 PM.png](https://www.dropbox.com/s/h3jxoz5ds1zr9eo/Screen%20Shot%202020-10-29%20at%206.07.44%20PM.png?dl=0&raw=1)
@@ -117,10 +117,11 @@ You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a
    For each directory in the 'consolidate' Repo, the generator will read each captions.tsv and couple it with its associated features.
    See also the `consolidate` function in [pachyderm.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachydermtest.py) for more details.
     
-   **Useful tip** - To test out the output of your join, have a look at the item 2 of this [lifesaving list](https://medium.com/@jimmymwhitaker/5-tips-and-tricks-scaling-ml-with-  pachyderm-b6ee045ff800). The added .json file you will need is in your pachydern directory: [pachyderm-inspect-input.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachyderm-inspect-input.json) 
+   **Useful tip** - To test out the output of your join, have a look at the item 2 of this [lifesaving list](https://medium.com/@jimmymwhitaker/5-tips-and-tricks-scaling-ml-with-pachyderm-b6ee045ff800). The added .json file you will need is in your pachydern directory: [pachyderm-inspect-input.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachyderm-inspect-input.json) 
    
 9. Our trained model: Finally...
-If all your jobs have run successfully, which they should, you will find a `saved_model.h5` in the Repo 'model' in `/saved/`. This is the last commit of this training pipeline. 
+
+ If all your jobs have run successfully, which they should, you will find a `saved_model.h5` in the Repo 'model' in `/saved/`. This is the last commit of this training pipeline. 
 
 ## Predict phase run-through
 
