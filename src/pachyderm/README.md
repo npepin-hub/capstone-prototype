@@ -29,7 +29,7 @@ Our DAGs look like this :
 Note that the training pipelines have been given self-explanatory names. The "consolidate" pipeline is nothing more than a [shuffle pipeline](https://github.com/pachyderm/pachyderm/tree/master/examples/shuffle) (an intermediate processing step that aggregates/joins our features and caption data to feed our model).
 
 
-For the curious mind: More details about the training pipelines (It really is simpler than it looks):
+For the curious mind: More details about the training pipeline (It really is simpler than it looks)
 ![detailed pipelinespng.png](https://www.dropbox.com/s/cyicllgpg3x086k/detailed%20pipelinespng.png?dl=0&raw=1)
 
 ## Training phase run-through
@@ -91,33 +91,34 @@ You should see the list of your 20 Datums in `rawdata/test.tsv/`. One click on a
         
     ![Screen Shot 2020-10-29 at 5.48.09 PM.png](https://www.dropbox.com/s/jmovqhkw3jgyfib/Screen%20Shot%202020-10-29%20at%205.48.09%20PM.png?dl=0&raw=1)
     
-Notice that all 20 Datum(s) are in **one** commit. 
+    Notice that all 20 Datum(s) are in **one** commit. 
 
-This commit will trigger the first job in our first-in-line pipeline (ie: 'images'). 
-The Datum(s) it contains (20 in our case) will be processed and an output commit created in the output Repo of the 'images' pipeline (conveniently called... 'images'). 
-This output commit will trigger the following job in the next-in-line pipeline (ie:'features'). 
+    This commit will trigger the first job in our first-in-line pipeline (ie: 'images'). 
+    The Datum(s) it contains (20 in our case) will be processed and an output commit created in the output Repo of the 'images' pipeline (conveniently called... 'images'). 
+    This output commit will, in turn, trigger the following job in the next-in-line pipeline (ie:'features'). 
 
-You got the idea... All the way to our final trained 'saved_model.h5' model.
+    You got the idea... All the way to our final trained 'saved_model.h5' model.
 
 7. Spotlight on [parallelism](https://docs.pachyderm.com/latest/reference/pipeline_spec/#parallelism-spec-optional): It takes a line.
-In [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json), we have used the constant field `parallelism_spec` to set the number of workers to 20 for this job.
+    In [images.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/images.json), we have used the constant field `parallelism_spec` to set the number     of workers to 20 for this job.
 
     ![Screen Shot 2020-10-29 at 10.12.21 PM.png](https://www.dropbox.com/s/ogeesa2n0t6a6y1/Screen%20Shot%202020-10-29%20at%2010.12.21%20PM.png?dl=0&raw=1)
-8. Now, let's have a closer look at how our data are consolidated in [consolidate.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/consolidate.json) pipeline:
-To prepare our training set with the tuples (caption, features) required, we are combining files that reside in 2 separate Pachyderm repositories ('rawdata' and 'features') and match a particular naming pattern using a [Join](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/join/). See the "glob" patterns below.
+8. Now, let's have a closer look at how our data are consolidated in our shuffle pipeline [consolidate.json](https://github.com/nadegepepin/capstone-   prototype/blob/master/src/pachyderm/consolidate.json):
+    To prepare our training set with the tuples (caption, features) required, we are combining files that reside in 2 separate Pachyderm repositories ('rawdata' and 'features')       and match a particular naming pattern using a [Join](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/join/). See the "glob" patterns below.
 
     ![Screen Shot 2020-10-29 at 6.07.44 PM.png](https://www.dropbox.com/s/h3jxoz5ds1zr9eo/Screen%20Shot%202020-10-29%20at%206.07.44%20PM.png?dl=0&raw=1)
 
-    To highlight how the join works, we have broken down the Repos' file hierarchy of each pipeline. 
+   To highlight how the join works, we have broken down the Repos' file hierarchy of each pipeline. 
     
 ![Glob _ Join explained.png](https://www.dropbox.com/s/60pwocwi5aavkiy/Glob%20_%20Join%20explained.png?dl=0&raw=1)
 
 
-In our case, we are joining each initial Datum file in 'rawdata' (renamed captions.tsv) with the entire content of the directory of the same name in 'features'. 
-For each directory in the 'consolidate' Repo, the generator will read each captions.tsv and couple it with its associated features.
-See also the `consolidate` function in [pachyderm.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachydermtest.py) for more details.
+   In our case, we are joining each initial Datum file in 'rawdata' (renamed captions.tsv) with the entire content of the directory of the same name in 'features'. 
+   For each directory in the 'consolidate' Repo, the generator will read each captions.tsv and couple it with its associated features.
+   See also the `consolidate` function in [pachyderm.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachydermtest.py) for more details.
     
- **Useful tip** - To test out the output of your join, have a look at the item 2 of this [lifesaving list](https://medium.com/@jimmymwhitaker/5-tips-and-tricks-scaling-ml-with-pachyderm-b6ee045ff800). The added .json file you will need is in your pachydern directory: [pachyderm-inspect-input.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachyderm-inspect-input.json) 
+   **Useful tip** - To test out the output of your join, have a look at the item 2 of this [lifesaving list](https://medium.com/@jimmymwhitaker/5-tips-and-tricks-scaling-ml-with-  pachyderm-b6ee045ff800). The added .json file you will need is in your pachydern directory: [pachyderm-inspect-input.json](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/pachyderm-inspect-input.json) 
+   
 9. Our trained model: Finally...
 If all your jobs have run successfully, which they should, you will find a `saved_model.h5` in the Repo 'model' in `/saved/`. This is the last commit of this training pipeline. 
 
