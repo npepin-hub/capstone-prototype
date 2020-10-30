@@ -139,16 +139,17 @@ Let's try a prediction.
         pachctl list pipeline
         pachctl list repo
 
-2. Time to give your model a random image
+2. Time to give your model a random image:
+
 In the `./testdata/` dirctory, run:
 
         pachctl put file inpredict@master -f image.png
         
-    The commit of your image triggered a job in your predict pipeline. 
+   The commit of your image triggered a job in your predict pipeline. 
     
         pachctl list job
-     Check your dashboard, the 'predict' Repo should contain a `image.png.txt` file. 
-     You have your caption! Yes, it looks funky. Remember, we have trained our model on a minimal set of data. The predicted caption produced is logically off. It is ok. That was not the point of this training.
+   Check your dashboard, the 'predict' Repo should contain a `image.png.txt` file. 
+   You have your caption! Yes, it looks funky. Remember, we have trained our model on a minimal set of data. The predicted caption produced is off. It is ok. That was not the point of this training.
 3. Final note: 
     We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to be captioned ('inpredict' Repo) and the latest trained model ('model' Repo). 
 
@@ -157,7 +158,7 @@ In the `./testdata/` dirctory, run:
 ## You might find this useful
 Enable stats in development:
 
-The `"enable_stats": true` parameter [turns on statistics tracking for a pipeline](https://docs.pachyderm.com/latest/reference/pipeline_spec/#enable-stats-optional). Your pipeline will commit datum processing information to a special branch ("stats") in its output repo. It stores useful information about the datum it processes (timing, size, **logs**...). You can access those stats in your dashboard.
+The `"enable_stats": true` parameter [turns on statistics tracking for a pipeline](https://docs.pachyderm.com/latest/reference/pipeline_spec/#enable-stats-optional). Your pipeline will commit datum processing information to a special branch ("stats") in its output repo. It contains timing, size, **logs**...information about the datum it processes. You can access those stats in your dashboard.
 
 ![Screen Shot 2020-10-29 at 10.02.26 PM.png](https://www.dropbox.com/s/6n20ft0lphte3lo/Screen%20Shot%202020-10-29%20at%2010.02.26%20PM.png?dl=0&raw=1)
 
@@ -167,7 +168,7 @@ We are done transfering our ML pipelines to Pachyderm. In our case, we let go of
 - the split of our data and jobs over 30 machines to boost the data extraction and transformation 
 - the manual sequencing of our scripts to run all 3 phases (request images, extract features, and train)
 
-In other words, we have kept the DataScience and outsourced the MLOps. Yay.
+In other words, we have kept the Data Science and outsourced the MLOps. Yay.
 ## What's next?
 [This!](https://github.com/pachyderm/pachyderm/tree/master/examples/deferred_processing). Deferred processing is your next stop.
 
