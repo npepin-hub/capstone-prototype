@@ -13,3 +13,5 @@ predict:
 	pachctl create repo inpredict
 	pachctl create pipeline -f predict.json
 
+deploy:
+	pachctl copy file -o model@master:/saved/saved_model.h5 savedmodel@master:/saved_model.h5
