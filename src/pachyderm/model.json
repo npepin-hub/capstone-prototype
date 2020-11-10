@@ -4,8 +4,8 @@
   },
   "description": "Training of the model.",
   "transform": {
-    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=train_model", "--modeldir=/pfs/model"],
-    "image": "npepin/capstone-prototype:1.0.1"
+    "cmd": [ "python3", "pachyderm/pachydermtest.py", "--stage=train_model"],
+    "image": "npepin/capstone-prototype:d"
   },
   "input": {
     "pfs": {

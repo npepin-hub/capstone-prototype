@@ -162,8 +162,10 @@ def train(model_dir):
 
     generator = preprocessor.pachyderm_dataset("/pfs/consolidate", batch_size=10)
     training_model.fit(generator, epochs=1, verbose=1, callbacks=[model_checkpoint_callback], workers=1)
-    # If all goes well, saves the complete model in a /saved directory - If not, we will need to retrieve the last checkpoint
+    # If all goes well, saves the complete model in a new repo - If not, we will need to retrieve the last checkpoint
     os.makedirs("/pfs/out/saved", exist_ok=True) 
+    #exported_model_path = os.path.join(model_dir, "saved_model.h5") 
+    #logger.info("Saving the trained model in " + exported_model_path)
     training_model.save("/pfs/out/saved/saved_model.h5")
 
 '''
@@ -227,15 +229,16 @@ if __name__ == "__main__":
         # aggregates data from /pfs/rawdata(captions) and /pfs/features(features) to feed the model
         consolidate()       
     elif args.stage == "train_model":
-        # A first pass at training //todo checkpoints callback and load of a given model to retrain
-        train(args.modeldir)
+        # A first pass at training //todo checkpoints callback and load of a given model to retrain 
+        train("/pfs/savedmodel")
     elif args.stage == "predict":
         logger = logging.getLogger() 
         # Get embedding matrix
         preprocessor = GloVepreprocessing.preprocessor_factory()
         # Get models
         features_model = get_features_model()
-        inference_model = get_inference_model("/pfs/model/saved/saved_model.h5", preprocessor)
+        #inference_model = get_inference_model("/pfs/model/saved/saved_model.h5", preprocessor)
+        inference_model = get_inference_model("/pfs/savedmodel/saved_model.h5", preprocessor)
         
         # Predict the caption from the given image using the trained model //todo choose what version of the model should be loaded
         for dirpath, _, files in os.walk("/pfs/inpredict"):

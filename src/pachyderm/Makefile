@@ -5,6 +5,8 @@ setup:
 	pachctl create pipeline -f features.json
 	pachctl create pipeline -f consolidate.json
 	pachctl create pipeline -f model.json
+	pachctl create repo savedmodel
+	pachctl create branch savedmodel@master
 
 predict:
 	echo "Creating the inpredict initial repository and the pipeline used to predict captions out of images"
