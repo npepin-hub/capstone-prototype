@@ -1,0 +1,22 @@
+
+
+<!doctype html>
+<html lang=en>
+<head>
+    <meta charset=utf-8>
+    <title>Flask-Reuploaded Example</title>
+</head>
+<body>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul class=flashes>
+    {% for message in messages %}
+        <li>{{ message }}</li>
+    {% endfor %}
+    </ul>
+    {% endif %}
+{% endwith %}
+
+    <img src="{{ url }}" alt="{{ url }}">
+</body>
+</html>
