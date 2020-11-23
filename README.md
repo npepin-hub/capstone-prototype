@@ -2,20 +2,19 @@
 
 A first "Conceptual" captioning project: https://github.com/nadegepepin/capstone-prototype. 
 ## 1- Preface
+Automatic caption generation stands at the crossroads of **computer vision** and **natural language processing**, making it a perfect candidate for a challenging first Machine Learning project.
+
 The production of the natural-language description of an image is nothing new. 
-It has many applications already, from assisting visually impaired to facilitating content indexation. 
-The models themselves have passed an important milestone with the arrival of GPT3.
+It is used as an assistance to people suffering from vision loss, it facilitates content indexation... 
+Models themselves have passed an important milestone with the arrival of GPT3.
 
-Because automatic caption generation stands at the crossroads of **computer vision** and **natural language processing**,
-it is a perfect candidate for a challenging first Machine Learning project.
-
-For this capstone, we have chosen to kepep this first ML project simple, using a ResNet/LSTM 'inject and merge' model (rather than a more updated Transformer model) and focusing mainly on producing robust, highly scalable, "Dockerized" code for both the training of our model and the inference of captions. 
+For this capstone, we have chosen to keep this first ML project simple, using a now dated ResNet/LSTM 'inject and merge' model (rather than a more updated Transformer model) and focusing mainly on producing robust, highly scalable, "Dockerized" code for both the training of our model and the inference of captions. 
 The end result is a Flask App running in our Docker container https://github.com/nadegepepin/capstone-prototype/tree/master/src/app and deployed on **AWS Fargate** http://18.218.38.67:5000/ 
 You might want to give it a try and upload your png or jpg (no transparency layer).
 
 ### 1.1- Project's highlights
 Before we dive into the few steps that led us to a fully trained model and its deployment on AWS, here are a couple things that make this ML project specific:
-- A learner mindset: Instead of spending time producing the best-in-class model trained on the traditional COCO or Flickr dataset, we decided to go for a simple model trained on a different set of data [google conceptual caption dataset](https://ai.google.com/research/ConceptualCaptions)  (~3.3 M images) for the sake of dealing with *the challenge of scalability*. This path led us to split our data and jobs over 30 machines in paralell in order to boost the data extraction and transformation prior to the training of our model on AWS Sage Maker.
+- A learner mindset: Instead of spending time on a best-in-class model trained on the traditional COCO or Flickr dataset, we decided to go for a simple model trained on a different set of data [google conceptual caption dataset](https://ai.google.com/research/ConceptualCaptions)  (~3.3 M images) for the sake of dealing with *the challenge of scalability*. This path led us to split our data and jobs over 30 machines in paralell in order to boost the data extraction and transformation prior to the training of our model on AWS Sage Maker.
 - During the course of our bootcamp, a thorough interview process for [Pachyderm](https://www.pachyderm.com/) (a pipeline middleware product specialized in data lineage) led us to reproduce the same data extraction, tranformation, and the training of the model using [Pachyderm Hub](https://docs.pachyderm.com/latest/pachhub/pachhub_getting_started/) pipelines. 
 Read about it [here](https://github.com/nadegepepin/capstone-prototype/blob/master/src/pachyderm/README.md). 
 
@@ -73,7 +72,7 @@ The output’s one hot encoding has the dictionary size determined in the embedd
 **Fig 3:** *Recursivity of the caption generation*
 
 ### 2.3-  Embedding
-The captions have been embedded using [Stanfords’ GloVe 50](https://nlp.stanford.edu/projects/glove/) embedding matrix. You will find the details of the GloVe embedding used in the class [src/GloVepreprocessing.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/GloVepreprocessing.py). We fit a Tokenizer over the entire caption corpus and stored the dictionary and the weight matrix into a file using pickle (Look for the helper function ```preprocessor_factory()``` at the end of the GloVepreprocessing's class description). The class provides one hot encoding, word to index and index to word helpers. For this project, we have set the caption max lenght to 34 and dictionary size to 10.000. Those are hyper-parameters stored in a [config file](https://github.com/nadegepepin/capstone-prototype/blob/master/src/settings.toml).
+The captions have been embedded using [Stanfords’ GloVe 50](https://nlp.stanford.edu/projects/glove/) embedding matrix. You will find the details of the GloVe embedding used in the class [src/GloVepreprocessing.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/GloVepreprocessing.py). We fit a Tokenizer over the entire caption corpus and stored the dictionary and the weight matrix into a file using pickle (Look for the helper function ```preprocessor_factory()``` at the end of the GloVepreprocessing's class). The class provides one hot encoding, word to index and index to word helpers. For this project, we have set the caption max lenght to 34 and dictionary size to 10.000. Those are hyper-parameters stored in a [config file](https://github.com/nadegepepin/capstone-prototype/blob/master/src/settings.toml).
 
 ```
 MAX_SEQUENCE_LENGTH = 34
@@ -90,7 +89,7 @@ Details of compile, learning rate, loss, optimizer, check points, and tensor boa
 in [train.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/train.py). All values default in [config file settings.toml](https://github.com/nadegepepin/capstone-prototype/blob/master/src/settings.toml).
 
 ***Fit job***
-More details about the processing job used to [Feed the model with both the captions and associated features](https://github.com/nadegepepin/ml-docker/blob/master/run-fit.sh)
+More details about the processing job used to fit the model [here](https://github.com/nadegepepin/ml-docker/blob/master/run-fit.sh).
 
 ***Sage Maker job processing***
 All the data processing and training jobs have run on **Amazon SageMaker** using my docker image and an S3 bucket as Input/Output.
@@ -113,5 +112,22 @@ Our flask app was deployed as a container on AWS Container service using a **Far
 ![fargatehosting.png](https://github.com/nadegepepin/capstone-prototype/raw/master/readmeimg/fargatehosting.png)
 ***Fig 6:*** *Fargate hosting of Flask App*
 ## 5- Metrics/BLEU score
-//TODO
+We have tested our model (```define_my_model```) against another (```define_model```) and tried various datasets (Flickr8, Conceptual Caption) and features extraction models (VGG16, ResNet50). The detail of those combinations can be found in this [Jupiter notebook](https://github.com/nadegepepin/capstone-prototype/blob/master/src/tests/load_train_infer_test.ipynb).
+
+BLEU scores (1,2,3 and 4-grams) for each of those tests: ![here](https://github.com/nadegepepin/capstone-prototype/raw/master/readmeimg/bleu.png)
+
+Last, a comparison of some predicted caption vs actual:
+
+- **Predicted**: the interior of the house- **Actual**: opening up fireplace for the installation of wood burning
+- **Predicted**: actor attends the premiere of the film- **Actual**: fashion shoot using balloons as prop
+- **Predicted**: person attends the fashion show during fashion week- **Actual**: shoppers on the final saturday before western christian holiday
+- **Predicted**: person performs on stage during festival- **Actual**: lead singer person puts the finishing touches on his solo performance
+- **Predicted**: actor performs during the festival- **Actual**: electronica artist of electronica artist performs on stage during the second day of festival
+- **Predicted**: young woman with his son in the street- **Actual**: disease homeless lives in the streets of neighborhood already
+- **Predicted**: portrait of young woman with glasses- **Actual**: gloomy face of sad woman looking down zoom in gray background
+- **Predicted**: the view from the top of the building- **Actual**: still shot of several boats on port
+- **Predicted**: young woman in the park- **Actual**: woman with umbrella talking on the phone smiling feeling positive thoughts
+- **Predicted**: person competes in the first half of the game against sports team- **Actual**: person warms up during game against american football team
+- **Predicted**: map of the country- **Actual**: painting artist thought it was compliment that children could understand his art
+- **Predicted**: person in the dress- **Actual**: person in dress and wrap
 
