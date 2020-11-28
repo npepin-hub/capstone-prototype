@@ -20,7 +20,7 @@ Read about it [here](https://github.com/nadegepepin/capstone-prototype/blob/mast
 
 For this project, we will be using Conceptual Captions, a new, cleaned, hypernym-ed, Image Alt-text Dataset for Automatic Image Captioning created by Piyush Sharma, Nan Ding, Sebastian Goodman, and Radu Soricut at Google AI in 2018. The dataset contains about 3.3M images URLs and their associated caption. Contrary to the previous datasets (MS-COCO, Flickr8) traditionally used to train captioning models, this one was programmatically generated/labeled from billion of original images harvested on the internet. The significant difference in the size of this new dataset (compared to the 200K images from MS-COCO) provides a wider diversity of images. Depending on our time at hand, we will ultimately try to fit our model with both datasets in order to compare how our model reacts.
 
-You can download the datat Dataset [here](https://ai.google.com/research/ConceptualCaptions/download).
+You can download the Dataset [here](https://ai.google.com/research/ConceptualCaptions/download).
 
 ### 1.2- What Data?
 
