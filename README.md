@@ -85,13 +85,16 @@ MAX_VOCAB_SIZE= 10000
 Details of the generator in the [GloVepreprocessing.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/GloVepreprocessing.py) can be found in the ```generator``` function. 
 ### 3.2-  Fit/Train and save model 
 ***Train***
+
 Details of compile, learning rate, loss, optimizer, check points, and tensor board callbacks used for fitting the model found
 in [train.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/train.py). All values default in [config file settings.toml](https://github.com/nadegepepin/capstone-prototype/blob/master/src/settings.toml).
 
 ***Fit job***
+
 More details about the processing job used to fit the model [here](https://github.com/nadegepepin/ml-docker/blob/master/run-fit.sh).
 
 ***Sage Maker job processing***
+
 All the data processing and training jobs have run on **Amazon SageMaker** using my docker image and an S3 bucket as Input/Output.
 
 ![fit job](https://github.com/nadegepepin/capstone-prototype/raw/master/readmeimg/sagemakerfitjob.png)
@@ -101,12 +104,15 @@ All the data processing and training jobs have run on **Amazon SageMaker** using
 ***Fig 5:*** *s3 Input/Output buckets*
 ## 4- Inference/Caption generation - Hosting
 ***Caption generation***
+
 see [predict.py](https://github.com/nadegepepin/capstone-prototype/blob/master/src/predict.py) 
 
 ***Flask App***
+
 Code to our simple Flask app [here](https://github.com/nadegepepin/capstone-prototype/tree/master/src/app)
 
 ***AWS Fargate hosting***
+
 Our flask app was deployed as a container on AWS Container service using a **Fargate** (on demand Pay-per-Use) cluster.
 
 ![fargatehosting.png](https://github.com/nadegepepin/capstone-prototype/raw/master/readmeimg/fargatehosting.png)
