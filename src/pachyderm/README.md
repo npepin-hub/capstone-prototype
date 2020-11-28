@@ -23,7 +23,7 @@ Just like any ML project, you will find 2 sets of pipelines here:
 
 Our DAGs look like this :
 
-![target pipelines.png](https://www.dropbox.com/s/az21yz0few18i8d/target%20pipelines.png?dl=0&raw=1)
+![target pipelines.png](https://www.dropbox.com/s/w4oi192e85d8uc7/Training%20pipeline2.png?dl=0)
 
     
 Note that the training pipelines have been given self-explanatory names. The "consolidate" pipeline is nothing more than a [shuffle pipeline](https://github.com/pachyderm/pachyderm/tree/master/examples/shuffle) (an intermediate processing step that aggregates/joins our features and caption data to feed our model).
