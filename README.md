@@ -58,8 +58,8 @@ Each caption goes through a simple pre-processing 'clean up' before its final st
  
  ### 2.2- Model
 
-We used an 'inject and merge' architecture for our encoder-decoder recurrent neural network model.
-The model’s creation code can be found [here](https://github.com/nadegepepin/capstone-prototype/blob/master/src/model.py) under the function ```injectAndMerge()``` (Nota: we used ```tensorflow.keras``` 2.x ). See figure 2 below.
+We used an 'inject and merge' architecture (on ```tensorflow.keras``` 2.x ) for our encoder-decoder recurrent neural network model.
+The model’s creation code can be found [here](https://github.com/nadegepepin/capstone-prototype/blob/master/src/model.py) under the function ```injectAndMerge()```. See figure 2 below.
 
 ![Training.png](https://raw.githubusercontent.com/nadegepepin/capstone-prototype/master/readmeimg/training.png)
 **Fig 2:** *Captioning model training* 
