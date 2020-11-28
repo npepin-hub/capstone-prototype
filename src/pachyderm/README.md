@@ -30,7 +30,7 @@ Note that the training pipelines have been given self-explanatory names. The "co
 
 
 For the curious mind: More details about the training pipeline (It really is simpler than it looks)
-![detailed pipelinespng.png](https://www.dropbox.com/s/c67vqmfxji9egvh/TrainingPipeline.png?dl=0&raw=1)
+![detailed pipelinespng.png](https://www.dropbox.com/s/c67vqmfxji9egvh/TrainingPipeline2.png?dl=0&raw=1)
 
 ## Training phase run-through
 1. Let's start by cloning https://github.com/nadegepepin/capstone-prototype
