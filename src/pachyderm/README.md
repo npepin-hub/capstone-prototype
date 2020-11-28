@@ -141,7 +141,7 @@ Let's try a prediction.
 
 2. Time to give your model a random image:
 
-In the `./testdata/` dirctory, run:
+In the `./testdata/` directory, run:
 
         pachctl put file inpredict@master -f image.png
         
@@ -150,8 +150,9 @@ In the `./testdata/` dirctory, run:
         pachctl list job
    Check your dashboard, the 'predict' Repo should contain a `image.png.txt` file. 
    You have your caption! Yes, it looks funky. Remember, we have trained our model on a minimal set of data. The predicted caption produced is off. It is ok. That was not the point of this training.
+   
 3. Final note: 
-    We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to be captioned ('inpredict' Repo) and the latest trained model ('model' Repo). 
+    We used a [cross input](https://docs.pachyderm.com/latest/concepts/pipeline-concepts/datum/cross-union/) to access both the image we want to caption ('inpredict' Repo) and the latest trained model ('model' Repo). 
 
    ![Screen Shot 2020-10-29 at 9.38.49 PM.png](https://www.dropbox.com/s/ipjho4lzakr4ao4/Screen%20Shot%202020-10-29%20at%209.38.49%20PM.png?dl=0&raw=1)
 
@@ -170,6 +171,6 @@ We are done transfering our ML pipelines to Pachyderm. In our case, we let go of
 
 In other words, we have kept the Data Science and outsourced the MLOps. Yay.
 ## What's next?
-[This!](https://github.com/pachyderm/pachyderm/tree/master/examples/deferred_processing). Deferred processing is your next stop.
+[This!](https://github.com/pachyderm/pachyderm/tree/master/examples/deferred_processing) Deferred processing is your next stop.
 
 
